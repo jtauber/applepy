@@ -41,29 +41,11 @@ class Memory:
         return self.read_byte(address) + (self.read_byte(address + 1) << 8)
     
     def write_screen(self, address, value):
-        address_hi, address_lo = divmod(address, 0x100)
-        
-        if address_lo < 0x28:
-            a = 0x01
-            b = 0x00
-        elif address_lo < 0x50:
-            a = 0x09
-            b = 0x28
-        elif address_lo < 0x80:
-            a = 0x11
-            b = 0x50
-        elif address_lo < 0xA8:
-            a = 0x02
-            b = 0x80
-        elif address_lo < 0xD0:
-            a = 0x0A
-            b = 0xA8
-        else:
-            a = 0x12
-            b = 0xD0
-        
-        x = address_lo - b
-        y = 2 * (address_hi - 0x04) + a
+        base = address - 0x400
+        hi, lo = divmod(base, 0x80)
+        row_group, column  = divmod(lo, 0x28)
+        row = hi + 8 * row_group
+        assert row_group != 3 # @@@
         
         c = chr(0x20 + ((value + 0x20) % 0x40))
         
@@ -76,8 +58,7 @@ class Memory:
         else:
             attr = curses.A_DIM
         
-        if x < 0x28:
-            self.win.addch(y, x, c, attr)
+        self.win.addch(row, column, c, attr)
 
 
 class CPU:
