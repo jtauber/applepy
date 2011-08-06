@@ -244,7 +244,7 @@ class CPU:
         self.program_counter = self.memory.read_word(self.RESET_VECTOR)
     
     def dump(self, win):
-        win.addstr(10, 50, "%04X got %02X" % (self.program_counter, op))
+        win.addstr(10, 50, "%04X got %02X" % (self.program_counter - 1, op))
         win.addstr(14, 50, "BUFFER:" +
             " ".join("%02X" % self.memory.read_byte(m) for m in range(0x200, 0x210))
         )
@@ -259,7 +259,7 @@ class CPU:
             self.interrupt_disable_flag,
             self.zero_flag,
             self.carry_flag,
-            self.program_counter,
+            self.program_counter - 1,
             self.stack_pointer))
         win.addstr(12, 50, "STACK:" +
             " ".join("%02X" % self.memory.read_byte(self.STACK_PAGE + i) for i in range(255, self.stack_pointer, -1))
@@ -271,9 +271,8 @@ class CPU:
         curses.noecho()
         win.nodelay(True)
         while True:
-            op = self.memory.read_byte(self.program_counter)
+            op = self.read_pc_byte()
             # self.dump(win)
-            self.program_counter += 1
             func = self.ops[op]
             if func is None:
                 curses.endwin()
