@@ -636,10 +636,12 @@ class CPU:
     # @@@ IRQ
     # @@@ NMI
 
-mem = Memory(0x100000)
 
-# available from http://www.easy68k.com/paulrsm/6502/index.html
-mem.load("A2ROM.BIN", 0xD000)
-
-cpu = CPU(mem)
-curses.wrapper(cpu.run)
+if __name__ == "__main__":
+    mem = Memory(0x100000)
+    
+    # available from http://www.easy68k.com/paulrsm/6502/index.html
+    mem.load("A2ROM.BIN", 0xD000)
+    
+    cpu = CPU(mem)
+    curses.wrapper(cpu.run)
