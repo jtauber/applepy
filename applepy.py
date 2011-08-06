@@ -330,6 +330,9 @@ class CPU:
     def zero_page_x_mode(self):
         return (self.zero_page_mode() + signed(self.x_index)) % 0x100
     
+    def zero_page_y_mode(self):
+        return (self.zero_page_mode() + signed(self.y_index)) % 0x100
+    
     def indirect_mode(self):
         return self.memory.read_word(self.absolute_mode())
     
