@@ -299,15 +299,24 @@ class CPU:
     
     ####
     
+    def get_pc(self, inc=1):
+        pc = self.program_counter
+        self.program_counter += inc
+        return pc
+    
+    def read_pc_byte(self):
+        return self.memory.read_byte(self.get_pc())
+    
+    def read_pc_word(self):
+        return self.memory.read_word(self.get_pc(2))
+    
+    ####
+    
     def immediate_mode(self):
-        address = self.program_counter
-        self.program_counter += 1
-        return address
+        return self.get_pc()
     
     def absolute_mode(self):
-        address = self.memory.read_word(self.program_counter)
-        self.program_counter += 2
-        return address
+        return self.read_pc_word()
     
     def absolute_x_mode(self):
         return self.absolute_mode() + signed(self.x_index)
@@ -316,9 +325,7 @@ class CPU:
         return self.absolute_mode() + signed(self.y_index)
     
     def zero_page_mode(self):
-        address = self.memory.read_byte(self.program_counter)
-        self.program_counter += 1
-        return address
+        return self.read_pc_byte()
     
     def zero_page_x_mode(self):
         return self.zero_page_mode() + signed(self.x_index)
@@ -327,20 +334,14 @@ class CPU:
         return self.memory.read_word(self.absolute_mode())
     
     def indirect_x_mode(self):
-        address = self.memory.read_word((self.memory.read_byte(self.program_counter) + signed(self.x_index)) % 0x100)
-        self.program_counter += 1
-        return address
+        return self.memory.read_word((self.read_pc_byte() + signed(self.x_index)) % 0x100)
     
     def indirect_y_mode(self):
-        address = self.memory.read_word(self.memory.read_byte(self.program_counter)) + signed(self.y_index)
-        self.program_counter += 1
-        return address
+        return self.memory.read_word(self.read_pc_byte()) + signed(self.y_index)
     
     def relative_mode(self):
-        pc = self.program_counter
-        self.program_counter += 1
-        address = pc + 1 + signed(self.memory.read_byte(pc))
-        return address
+        pc = self.get_pc()
+        return pc + 1 + signed(self.memory.read_byte(pc))
     
     ####
     
