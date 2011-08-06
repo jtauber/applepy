@@ -1,0 +1,21 @@
+ApplePy - an Apple ][ emulator in Python
+========================================
+
+by James Tauber / http://jtauber.com/
+
+Originally written 2001, updated 2011
+
+Apple ][ ROM available from http://www.easy68k.com/paulrsm/6502/index.html
+
+
+Status
+------
+
+With original Apple ][ ROM it boots to monitor fine, most monitor commands
+work and you can go into Integer BASIC however, every command currently gives
+an error.
+
+With later ROMs it hangs on boot.
+
+Still debugging, but mostly likely subtleties in flags not being correctly
+updated.
