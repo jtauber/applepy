@@ -520,7 +520,7 @@ class CPU:
             self.program_counter = operand_address
     
     def BVS(self, operand_address):
-        if not self.overflow_flag:
+        if self.overflow_flag:
             self.program_counter = operand_address
     
     # SET / CLEAR FLAGS
