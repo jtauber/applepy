@@ -689,7 +689,7 @@ class CPU:
 
 
 if __name__ == "__main__":
-    mem = Memory(0x100000)
+    mem = Memory(0x10000)
     
     # available from http://www.easy68k.com/paulrsm/6502/index.html
     mem.load_file(0xD000, "A2ROM.BIN")
