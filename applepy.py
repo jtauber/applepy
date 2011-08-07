@@ -620,10 +620,10 @@ class CPU:
             m1 = (m1 & 0x7F) - 0x80
         
         # twos complement subtraction
-        result1 = a1 - m1 - self.carry_flag
+        result1 = a1 - m1 - [1, 0][self.carry_flag]
         
         # unsigned subtraction
-        result2 = a2 - m2 - self.carry_flag
+        result2 = a2 - m2 - [1, 0][self.carry_flag]
         
         self.accumulator = self.update_nz(result2)
         self.carry_flag = (result2 >= 0)
