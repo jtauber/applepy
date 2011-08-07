@@ -39,6 +39,12 @@ class Memory:
     def read_word(self, address):
         return self.read_byte(address) + (self.read_byte(address + 1) << 8)
     
+    def read_word_bug(self, address):
+        if address % 0x100 == 0xFF:
+            return self.read_byte(address) + (self.read_byte(address & 0xFF00) << 8)
+        else:
+            return self.read_word(address)
+    
     def write_screen(self, address, value):
         base = address - 0x400
         hi, lo = divmod(base, 0x80)
@@ -366,17 +372,13 @@ class CPU:
         return (self.zero_page_mode() + signed(self.y_index)) % 0x100
     
     def indirect_mode(self):
-        address = self.absolute_mode()
-        hi = address + 1
-        # emulate a known bug in 6502
-        hi = (address & 0xFF00) + (((address & 0xFF) + 1) & 0xFF)
-        return self.memory.read_byte(address) + (self.memory.read_byte(hi) << 8)
+        return self.memory.read_word_bug(self.absolute_mode())
     
     def indirect_x_mode(self):
-        return self.memory.read_word((self.read_pc_byte() + signed(self.x_index)) % 0x100)
+        return self.memory.read_word_bug((self.read_pc_byte() + signed(self.x_index)) % 0x100)
     
     def indirect_y_mode(self):
-        return self.memory.read_word(self.read_pc_byte()) + signed(self.y_index)
+        return self.memory.read_word_bug(self.read_pc_byte()) + signed(self.y_index)
     
     def relative_mode(self):
         pc = self.get_pc()
