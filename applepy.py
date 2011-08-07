@@ -133,7 +133,7 @@ class CPU:
         self.ops[0x3D] = lambda: self.AND(self.absolute_x_mode())
         self.ops[0x3E] = lambda: self.ROL(self.absolute_x_mode())
         self.ops[0x40] = lambda: self.RTI()
-        self.ops[0x41] = lambda: self.EOR(x.indirect_x_mode())
+        self.ops[0x41] = lambda: self.EOR(self.indirect_x_mode())
         self.ops[0x45] = lambda: self.EOR(self.zero_page_mode())
         self.ops[0x46] = lambda: self.LSR(self.zero_page_mode())
         self.ops[0x48] = lambda: self.PHA()
