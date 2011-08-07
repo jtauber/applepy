@@ -15,15 +15,14 @@ class Memory:
     def __init__(self, size):
         self.__mem = [0x00] * size
     
-    def load(self, filename, offset):
+    def load(self, address, data):
+        for offset, datum in enumerate(data):
+            self.__mem[address + offset] = datum
+    
+    def load_file(self, address, filename):
         with open(filename) as f:
-            address = offset
-            while True:
-                ch = f.read(1)
-                if ch == "":
-                    break
-                self.__mem[address] = ord(ch)
-                address += 1
+            for offset, datum in enumerate(f.read()):
+                self.__mem[address + offset] = ord(datum)
     
     def read_byte(self, address):
         assert address <= 0xFFFF
@@ -681,7 +680,7 @@ if __name__ == "__main__":
     mem = Memory(0x100000)
     
     # available from http://www.easy68k.com/paulrsm/6502/index.html
-    mem.load("A2ROM.BIN", 0xD000)
+    mem.load_file(0xD000, "A2ROM.BIN")
     
     cpu = CPU(mem)
     curses.wrapper(cpu.run)
