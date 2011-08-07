@@ -367,7 +367,11 @@ class CPU:
         return (self.zero_page_mode() + signed(self.y_index)) % 0x100
     
     def indirect_mode(self):
-        return self.memory.read_word(self.absolute_mode())
+        address = self.absolute_mode()
+        hi = address + 1
+        # emulate a known bug in 6502
+        hi = (address & 0xFF00) + (((address & 0xFF) + 1) & 0xFF)
+        return self.memory.read_byte(address) + (self.memory.read_byte(hi) << 8)
     
     def indirect_x_mode(self):
         return self.memory.read_word((self.read_pc_byte() + signed(self.x_index)) % 0x100)
