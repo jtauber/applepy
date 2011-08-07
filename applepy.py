@@ -631,28 +631,28 @@ class CPU:
         return self.read_pc_word()
     
     def absolute_x_mode(self):
-        return self.absolute_mode() + signed(self.x_index)
+        return self.absolute_mode() + self.x_index
     
     def absolute_y_mode(self):
-        return self.absolute_mode() + signed(self.y_index)
+        return self.absolute_mode() + self.y_index
     
     def zero_page_mode(self):
         return self.read_pc_byte()
     
     def zero_page_x_mode(self):
-        return (self.zero_page_mode() + signed(self.x_index)) % 0x100
+        return (self.zero_page_mode() + self.x_index) % 0x100
     
     def zero_page_y_mode(self):
-        return (self.zero_page_mode() + signed(self.y_index)) % 0x100
+        return (self.zero_page_mode() + self.y_index) % 0x100
     
     def indirect_mode(self):
         return self.memory.read_word_bug(self.absolute_mode())
     
     def indirect_x_mode(self):
-        return self.memory.read_word_bug((self.read_pc_byte() + signed(self.x_index)) % 0x100)
+        return self.memory.read_word_bug((self.read_pc_byte() + self.x_index) % 0x100)
     
     def indirect_y_mode(self):
-        return self.memory.read_word_bug(self.read_pc_byte()) + signed(self.y_index)
+        return self.memory.read_word_bug(self.read_pc_byte()) + self.y_index
     
     def relative_mode(self):
         pc = self.get_pc()
