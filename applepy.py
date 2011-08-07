@@ -311,13 +311,13 @@ class CPU:
     ####
     
     def status_from_byte(self, status):
-        self.carry_flag = 0 != status & 1
-        self.zero_flag = 0 != status & 2
-        self.interrupt_disable_flag = 0 != status & 4
-        self.decimal_mode_flag = 0 != status & 8
-        self.break_flag = 0 != status & 16
-        self.overflow_flag = 0 != status & 64
-        self.sign_flag = 0 != status & 128
+        self.carry_flag = [0, 1][0 != status & 1]
+        self.zero_flag = [0, 1][0 != status & 2]
+        self.interrupt_disable_flag = [0, 1][0 != status & 4]
+        self.decimal_mode_flag = [0, 1][0 != status & 8]
+        self.break_flag = [0, 1][0 != status & 16]
+        self.overflow_flag = [0, 1][0 != status & 64]
+        self.sign_flag = [0, 1][0 != status & 128]
     
     def status_as_byte(self):
         return self.carry_flag | self.zero_flag << 1 | self.interrupt_disable_flag << 2 | self.decimal_mode_flag << 3 | self.break_flag << 4 | 1 << 5 | self.overflow_flag << 6 | self.sign_flag << 7 
@@ -386,12 +386,12 @@ class CPU:
     
     def update_nz(self, value):
         value = value % 0x100
-        self.zero_flag = (value == 0)
-        self.sign_flag = ((value & 0x80) != 0)
+        self.zero_flag = [0, 1][(value == 0)]
+        self.sign_flag = [0, 1][((value & 0x80) != 0)]
         return value
     
     def update_nzc(self, value):
-        self.carry_flag = (value > 0xFF)
+        self.carry_flag = [0, 1][(value > 0xFF)]
         return self.update_nz(value)
     
     ####
@@ -613,7 +613,7 @@ class CPU:
         self.accumulator = self.update_nzc(result2)
         
         # perhaps this could be calculated from result2 but result1 is more intuitive
-        self.overflow_flag = (result1 > 127) | (result1 < -128)
+        self.overflow_flag = [0, 1][(result1 > 127) | (result1 < -128)]
     
     def SBC(self, operand_address):
         # @@@ doesn't handle BCD yet
@@ -633,10 +633,10 @@ class CPU:
         result2 = a2 - m2 - [1, 0][self.carry_flag]
         
         self.accumulator = self.update_nz(result2)
-        self.carry_flag = (result2 >= 0)
+        self.carry_flag = [0, 1][(result2 >= 0)]
         
         # perhaps this could be calculated from result2 but result1 is more intuitive
-        self.overflow_flag = (result1 > 127) | (result1 < -128)
+        self.overflow_flag = [0, 1][(result1 > 127) | (result1 < -128)]
     
     # BIT
     
@@ -644,23 +644,23 @@ class CPU:
         value = self.memory.read_byte(operand_address)
         self.sign_flag = ((value >> 7) % 2) # bit 7
         self.overflow_flag = ((value >> 6) % 2) # bit 6
-        self.zero_flag = ((self.accumulator & value) == 0)
+        self.zero_flag = [0, 1][((self.accumulator & value) == 0)]
     
     # COMPARISON
     
     def CMP(self, operand_address):
         result = self.accumulator - self.memory.read_byte(operand_address)
-        self.carry_flag = (result >= 0)
+        self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
     
     def CPX(self, operand_address):
         result = self.x_index - self.memory.read_byte(operand_address)
-        self.carry_flag = (result >= 0)
+        self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
     
     def CPY(self, operand_address):
         result = self.y_index - self.memory.read_byte(operand_address)
-        self.carry_flag = (result >= 0)
+        self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
     
     # SYSTEM
