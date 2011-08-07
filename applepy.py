@@ -100,7 +100,10 @@ class Memory:
         hi, lo = divmod(base, 0x80)
         row_group, column  = divmod(lo, 0x28)
         row = hi + 8 * row_group
-        assert row_group != 3 # @@@
+        
+        # skip if writing to row group 3
+        if row_group == 3:
+            return
         
         c = chr(0x20 + ((value + 0x20) % 0x40))
         
