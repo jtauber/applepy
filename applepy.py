@@ -325,6 +325,26 @@ class CPU:
     
     ####
     
+    def push_byte(self, byte):
+        self.memory.write_byte(self.STACK_PAGE + self.stack_pointer, byte)
+        self.stack_pointer = (self.stack_pointer - 1) % 0x100
+    
+    def pull_byte(self):
+        self.stack_pointer = (self.stack_pointer + 1) % 0x100
+        return self.memory.read_byte(self.STACK_PAGE + self.stack_pointer)
+    
+    def push_word(self, word):
+        hi, lo = divmod(word, 0x100)
+        self.push_byte(hi)
+        self.push_byte(lo)
+    
+    def pull_word(self):
+        s = self.STACK_PAGE + self.stack_pointer + 1
+        self.stack_pointer += 2
+        return self.memory.read_word(s)
+    
+    ####
+    
     def immediate_mode(self):
         return self.get_pc()
     
@@ -456,19 +476,11 @@ class CPU:
         self.program_counter = operand_address
     
     def JSR(self, operand_address):
-        hi, lo = divmod(self.program_counter - 1, 0x100)
-        s = self.STACK_PAGE + self.stack_pointer
-        self.stack_pointer = (self.stack_pointer - 1)
-        self.memory.write_byte(s, hi)
-        s = self.STACK_PAGE + self.stack_pointer
-        self.stack_pointer = (self.stack_pointer - 1)
-        self.memory.write_byte(s, lo)
+        self.push_word(self.program_counter - 1)
         self.program_counter = operand_address
     
     def RTS(self):
-        s = self.STACK_PAGE + self.stack_pointer + 1
-        self.program_counter = self.memory.read_word(s) + 1
-        self.stack_pointer = self.stack_pointer + 2 # TODO: what to do when stack is empty?
+        self.program_counter = self.pull_word() + 1
     
     # BRANCHES
     
@@ -550,23 +562,16 @@ class CPU:
     # PUSH / PULL
     
     def PHA(self):
-        s = self.STACK_PAGE + self.stack_pointer
-        self.stack_pointer -= 1
-        self.memory.write_byte(s, self.accumulator)
+        self.push_byte(self.accumulator)
     
     def PHP(self):
-        status = self.status_as_byte()
-        s = self.STACK_PAGE + self.stack_pointer
-        self.stack_pointer = (self.stack_pointer - 1) % 0x100
-        self.memory.write_byte(s, status)
+        self.push_byte(self.status_as_byte())
     
     def PLA(self):
-        self.stack_pointer += 1
-        self.accumulator = self.update_nz(self.memory.read_byte(self.STACK_PAGE + self.stack_pointer))
+        self.accumulator = self.update_nz(self.pull_byte())
     
     def PLP(self):
-        self.stack_pointer = (self.stack_pointer + 1) % 0x100
-        self.status_from_byte(self.memory.read_byte(self.STACK_PAGE + self.stack_pointer))
+        self.status_from_byte(self.pull_byte())
     
     # LOGIC
     
@@ -639,33 +644,14 @@ class CPU:
     
     def BRK(self):
         # push PC
-        pc_hi, pc_lo = divmod(self.program_counter, 0x100)
-        
-        s = self.STACK_PAGE + self.stack_pointer
-        self.stack_pointer = (self.stack_pointer - 1) % 0x100
-        self.memory.write_byte(s, pc_hi)
-
-        self.stack_pointer = (self.stack_pointer - 1) % 0x100
-        self.memory.write_byte(s, pc_lo)
-        
-        # PHP
-        status = self.status_as_byte()
-        s = self.STACK_PAGE + self.stack_pointer
-        self.stack_pointer = (self.stack_pointer - 1) % 0x100
-        self.memory.write_byte(s, status)
-        
-        self.progress_counter = self.memory.read_word(0xFFFE)
+        self.push_word(self.program_counter + 1)
+        self.push_byte(self.status_as_byte())
+        self.program_counter = self.memory.read_word(0xFFFE)
         self.break_flag = 1
     
     def RTI(self):
-        # PLP
-        self.stack_pointer = (self.stack_pointer + 1) % 0x100
-        self.status_from_byte(self.memory.read_byte(self.STACK_PAGE + self.stack_pointer))
-        
-        # pull PC
-        s = self.STACK_PAGE + self.stack_pointer + 1
-        self.stack_pointer += 2
-        self.progress_counter = self.memory.read_word(s)
+        self.status_from_byte(self.pull_byte())
+        self.program_counter = self.pull_word()
     
     
     # @@@ IRQ
