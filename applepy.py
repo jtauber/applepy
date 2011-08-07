@@ -437,12 +437,9 @@ class CPU:
     
     def ASL(self, operand_address=None):
         if operand_address is None:
-            self.accumulator = self.accumulator << 1
-            self.carry_flag = (self.accumulator > 0xFF)
-            self.accumulator = self.update_nz(self.accumulator)
+            self.accumulator = self.update_nzc(self.accumulator << 1)
         else:
-            m = self.memory.read_byte(operand_address) << 1
-            self.memory.write_byte(operand_address, self.update_nzc(m))
+            self.memory.write_byte(operand_address, self.update_nzc(self.memory.read_byte(operand_address) << 1))
     
     def ROL(self, operand_address=None):
         if operand_address is None:
