@@ -123,9 +123,9 @@ class Disassemble:
     def __init__(self, cpu, memory):
         self.cpu = cpu
         self.memory = memory
-
+        
         self.setup_ops()
-
+    
     def setup_ops(self):
         self.ops = [None] * 0x100
         self.ops[0x00] = ("BRK", )
@@ -279,57 +279,55 @@ class Disassemble:
         self.ops[0xF9] = ("SBC", self.absolute_y_mode)
         self.ops[0xFD] = ("SBC", self.absolute_x_mode)
         self.ops[0xFE] = ("INC", self.absolute_x_mode)
-
-
+    
     def absolute_mode(self, pc):
-        a = self.memory.read_word(pc+1)
+        a = self.memory.read_word(pc + 1)
         return "$%04X    [%04X] = %02X" % (a, a, self.memory.read_word(a))
-
+    
     def absolute_x_mode(self, pc):
-        a = self.memory.read_word(pc+1)
+        a = self.memory.read_word(pc + 1)
         e = a + self.cpu.x_index
         return "$%04X,X  [%04X] = %02X" % (a, e, self.memory.read_byte(e))
-
+    
     def absolute_y_mode(self, pc):
-        a = self.memory.read_word(pc+1)
+        a = self.memory.read_word(pc + 1)
         e = a + self.cpu.y_index
         return "$%04X,Y    [%04X] = %02X" % (a, e, self.memory.read_byte(e))
-
+    
     def immediate_mode(self, pc):
-        return "#$%02X" % (self.memory.read_byte(pc+1))
-
+        return "#$%02X" % (self.memory.read_byte(pc + 1))
+    
     def indirect_mode(self, pc):
-        a = self.memory.read_word(pc+1)
+        a = self.memory.read_word(pc + 1)
         return "($%04X)  [%04X] = %02X" % (a, a, self.memory.read_word(a))
-
+    
     def indirect_x_mode(self, pc):
-        z = self.memory.read_byte(pc+1)
+        z = self.memory.read_byte(pc + 1)
         a = self.memory.read_word((z + self.cpu.x_index) % 0x100)
         return "($%02X,X)   [%04X] = %02X" % (z, a, self.memory.read_byte(a))
-
+    
     def indirect_y_mode(self, pc):
-        z = self.memory.read_byte(pc+1)
+        z = self.memory.read_byte(pc + 1)
         a = self.memory.read_word(z) + self.cpu.y_index
         return "($%02X),Y  [%04X] = %02X" % (z, a, self.memory.read_byte(a))
-
+    
     def relative_mode(self, pc):
-        return "$%04X" % (pc + signed(self.memory.read_byte(pc+1) + 2))
-
+        return "$%04X" % (pc + signed(self.memory.read_byte(pc + 1) + 2))
+    
     def zero_page_mode(self, pc):
-        a = self.memory.read_byte(pc+1)
+        a = self.memory.read_byte(pc + 1)
         return "$%02X      [%04X] = %02X" % (a, a, self.memory.read_byte(a))
-
+    
     def zero_page_x_mode(self, pc):
-        z = self.memory.read_byte(pc+1)
+        z = self.memory.read_byte(pc + 1)
         a = (z + self.cpu.x_index) % 0x100
         return "$%02X,X    [%04X] = %02X" % (z, a, self.memory.read_byte(a))
-
+    
     def zero_page_y_mode(self, pc):
-        z = self.memory.read_byte(pc+1)
+        z = self.memory.read_byte(pc + 1)
         a = (z + self.cpu.y_index) % 0x100
         return "$%02X,Y    [%04X] = %02X" % (z, a, self.memory.read_byte(a))
-
-
+    
     def disasm(self, pc):
         op = self.memory.read_byte(pc)
         info = self.ops[op]
