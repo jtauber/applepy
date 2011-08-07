@@ -348,15 +348,14 @@ class CPU:
     ####
     
     def update_nz(self, value):
-        self.zero_flag = (value % 0x100 == 0)
-        self.sign_flag = (value > 0x7F) or (value < 0x00)
-        return value % 0x100
+        value = value % 0x100
+        self.zero_flag = (value == 0)
+        self.sign_flag = ((value & 0x80) != 0)
+        return value
     
     def update_nzc(self, value):
-        self.zero_flag = (value % 0x100 == 0)
-        self.sign_flag = (value > 0x7F) or (value < 0x00)
         self.carry_flag = (value > 0xFF)
-        return value % 0x100
+        return self.update_nz(value)
     
     ####
     
