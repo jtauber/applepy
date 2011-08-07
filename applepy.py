@@ -454,7 +454,7 @@ class CPU:
             m = self.memory.read_byte(operand_address) << 1
             if self.carry_flag:
                 m = m | 0x01
-            self.memory.write_byte(operand_address,self.update_nzc(m))
+            self.memory.write_byte(operand_address, self.update_nzc(m))
     
     def ROR(self, operand_address=None):
         if operand_address is None:
