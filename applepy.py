@@ -30,11 +30,15 @@ class Memory:
             if address == 0xC010:
                 self.__mem[0xC000] = self.__mem[0xC000] & 0x7F # clear keyboard
         return self.__mem[address]
+
+    def write_byte_io(self, address, value):
+        self.__mem[address] = value
     
     def write_byte(self, address, value):
         if 0x400 <= address < 0x800:
             self.write_screen(address, value)
-        self.__mem[address] = value
+        if address < 0xC000:
+            self.__mem[address] = value
     
     def read_word(self, address):
         return self.read_byte(address) + (self.read_byte(address + 1) << 8)
@@ -298,7 +302,7 @@ class CPU:
                 elif key == 0x7F:
                     key = 0x8
                 # win.addstr(15, 50, hex(key))
-                self.memory.write_byte(0xC000, 0x80 + key)
+                self.memory.write_byte_io(0xC000, 0x80 + key)
             except curses.error:
                 pass
             except TypeError:
