@@ -63,7 +63,10 @@ class Memory:
         else:
             attr = curses.A_DIM
         
-        self.win.addch(row, column, c, attr)
+        try:
+            self.win.addch(row, column, c, attr)
+        except curses.error:
+            pass
 
 
 class CPU:
