@@ -133,7 +133,7 @@ class CPU:
         self.ops[0x3D] = lambda: self.AND(self.absolute_x_mode())
         self.ops[0x3E] = lambda: self.ROL(self.absolute_x_mode())
         self.ops[0x40] = lambda: self.RTI()
-        self.ops[0x41] = lambda: self.EOR(x.indirect_x_mode())
+        self.ops[0x41] = lambda: self.EOR(self.indirect_x_mode())
         self.ops[0x45] = lambda: self.EOR(self.zero_page_mode())
         self.ops[0x46] = lambda: self.LSR(self.zero_page_mode())
         self.ops[0x48] = lambda: self.PHA()
@@ -181,7 +181,7 @@ class CPU:
         self.ops[0x91] = lambda: self.STA(self.indirect_y_mode())
         self.ops[0x94] = lambda: self.STY(self.zero_page_x_mode())
         self.ops[0x95] = lambda: self.STA(self.zero_page_x_mode())
-        self.ops[0x96] = lambda: self.STX(self.zero_page_y())
+        self.ops[0x96] = lambda: self.STX(self.zero_page_y_mode())
         self.ops[0x98] = lambda: self.TYA()
         self.ops[0x99] = lambda: self.STA(self.absolute_y_mode())
         self.ops[0x9A] = lambda: self.TXS()
@@ -202,7 +202,7 @@ class CPU:
         self.ops[0xB1] = lambda: self.LDA(self.indirect_y_mode())
         self.ops[0xB4] = lambda: self.LDY(self.zero_page_x_mode())
         self.ops[0xB5] = lambda: self.LDA(self.zero_page_x_mode())
-        self.ops[0xB6] = lambda: self.LDX(self.zero_page_y())
+        self.ops[0xB6] = lambda: self.LDX(self.zero_page_y_mode())
         self.ops[0xB8] = lambda: self.CLV()
         self.ops[0xB9] = lambda: self.LDA(self.absolute_y_mode())
         self.ops[0xBA] = lambda: self.TSX()
@@ -251,7 +251,7 @@ class CPU:
     def reset(self):
         self.program_counter = self.memory.read_word(self.RESET_VECTOR)
     
-    def dump(self, win):
+    def dump(self, win, op):
         win.addstr(10, 50, "%04X got %02X" % (self.program_counter - 1, op))
         win.addstr(14, 50, "BUFFER:" +
             " ".join("%02X" % self.memory.read_byte(m) for m in range(0x200, 0x210))
@@ -280,7 +280,7 @@ class CPU:
         win.nodelay(True)
         while True:
             op = self.read_pc_byte()
-            # self.dump(win)
+            # self.dump(win, op)
             func = self.ops[op]
             if func is None:
                 curses.endwin()
@@ -602,12 +602,10 @@ class CPU:
         # @@@ doesn't handle BCD yet
         assert not self.decimal_mode_flag
         
-        a1 = a2 = self.accumulator
-        if a1 & 0x80:
-            a1 = (a1 & 0x7F) - 0x80
-        m1 = m2 = self.memory.read_byte(operand_address)
-        if m1 & 0x80:
-            m1 = (m1 & 0x7F) - 0x80
+        a2 = self.accumulator
+        a1 = signed(a2)
+        m2 = self.memory.read_byte(operand_address)
+        m1 = signed(m2)
         
         # twos complement addition
         result1 = a1 + m1 + self.carry_flag
@@ -624,12 +622,10 @@ class CPU:
         # @@@ doesn't handle BCD yet
         assert not self.decimal_mode_flag
         
-        a1 = a2 = self.accumulator
-        if a1 & 0x80:
-            a1 = (a1 & 0x7F) - 0x80
-        m1 = m2 = self.memory.read_byte(operand_address)
-        if m1 & 0x80:
-            m1 = (m1 & 0x7F) - 0x80
+        a2 = self.accumulator
+        a1 = signed(a2)
+        m2 = self.memory.read_byte(operand_address)
+        m1 = signed(m2)
         
         # twos complement subtraction
         result1 = a1 - m1 - [1, 0][self.carry_flag]
@@ -689,7 +685,7 @@ class CPU:
 
 
 if __name__ == "__main__":
-    mem = Memory(0x100000)
+    mem = Memory(0x10000)
     
     # available from http://www.easy68k.com/paulrsm/6502/index.html
     mem.load_file(0xD000, "A2ROM.BIN")
