@@ -456,11 +456,18 @@ class CPU:
                 m = m | 0x01
             self.memory.write_byte(operand_address,self.update_nzc(m))
     
-    def ROR(self):
-        if self.carry_flag:
-            self.accumulator = self.accumulator | 0x100
-        self.carry_flag = self.accumulator % 2
-        self.accumulator = self.update_nz(self.accumulator >> 1)
+    def ROR(self, operand_address=None):
+        if operand_address is None:
+            if self.carry_flag:
+                self.accumulator = self.accumulator | 0x100
+            self.carry_flag = self.accumulator % 2
+            self.accumulator = self.update_nz(self.accumulator >> 1)
+        else:
+            m = self.memory.read_byte(operand_address)
+            if self.carry_flag:
+                m = m | 0x100
+            self.carry_flag = m % 2
+            self.memory.write_byte(operand_address, self.update_nz(m >> 1))
     
     def LSR(self, operand_address=None):
         if operand_address is None:
