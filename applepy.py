@@ -607,12 +607,9 @@ class CPU:
     
     def BIT(self, operand_address):
         value = self.memory.read_byte(operand_address)
-        if value > 0x7F:
-            self.sign_flag = 1
-        else:
-            self.sign_flag = 0
+        self.sign_flag = ((value >> 7) % 2) # bit 7
         self.overflow_flag = ((value >> 6) % 2) # bit 6
-        self.zero_flag = ((self.accumulator & value) == 0) # @@@ is this right?
+        self.zero_flag = ((self.accumulator & value) == 0)
     
     # COMPARISON
     
