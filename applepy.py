@@ -568,7 +568,7 @@ class CPU:
         self.push_byte(self.status_as_byte())
     
     def PLA(self):
-        self.accumulator = self.pull_byte() # @@@ doesn't effect NZ?
+        self.accumulator = self.update_nz(self.pull_byte())
     
     def PLP(self):
         self.status_from_byte(self.pull_byte())
