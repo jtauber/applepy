@@ -643,7 +643,6 @@ class CPU:
         pass
     
     def BRK(self):
-        # push PC
         self.push_word(self.program_counter + 1)
         self.push_byte(self.status_as_byte())
         self.program_counter = self.memory.read_word(0xFFFE)
