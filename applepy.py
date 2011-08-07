@@ -311,6 +311,20 @@ class CPU:
     
     ####
     
+    def status_from_byte(self, status):
+        self.carry_flag = 0 != status & 1
+        self.zero_flag = 0 != status & 2
+        self.interrupt_disable_flag = 0 != status & 4
+        self.decimal_mode_flag = 0 != status & 8
+        self.break_flag = 0 != status & 16
+        self.overflow_flag = 0 != status & 64
+        self.sign_flag = 0 != status & 128
+    
+    def status_as_byte(self):
+        return self.carry_flag | self.zero_flag << 1 | self.interrupt_disable_flag << 2 | self.decimal_mode_flag << 3 | self.break_flag << 4 | 1 << 5 | self.overflow_flag << 6 | self.sign_flag << 7 
+    
+    ####
+    
     def immediate_mode(self):
         return self.get_pc()
     
@@ -541,8 +555,7 @@ class CPU:
         self.memory.write_byte(s, self.accumulator)
     
     def PHP(self):
-        status = self.carry_flag | self.zero_flag << 1 | self.interrupt_disable_flag << 2 | self.decimal_mode_flag << 3 | self.break_flag << 4 | 1 << 5 | self.overflow_flag << 6 | self.sign_flag << 7 
-        
+        status = self.status_as_byte()
         s = self.STACK_PAGE + self.stack_pointer
         self.stack_pointer = (self.stack_pointer - 1) % 0x100
         self.memory.write_byte(s, status)
@@ -553,15 +566,7 @@ class CPU:
     
     def PLP(self):
         self.stack_pointer = (self.stack_pointer + 1) % 0x100
-        s = self.STACK_PAGE + self.stack_pointer
-        status = self.memory.read_byte(s)
-        self.carry_flag = 0 != status & 1
-        self.zero_flag = 0 != status & 2
-        self.interrupt_disable_flag = 0 != status & 4
-        self.decimal_mode_flag = 0 != status & 8
-        self.break_flag = 0 != status & 16
-        self.overflow_flag = 0 != status & 64
-        self.sign_flag = 0 != status & 128
+        self.status_from_byte(self.memory.read_byte(self.STACK_PAGE + self.stack_pointer))
     
     # LOGIC
     
@@ -644,8 +649,8 @@ class CPU:
         self.memory.write_byte(s, pc_lo)
         
         # PHP
-        status = self.carry_flag | self.zero_flag << 1 | self.interrupt_disable_flag << 2 | self.decimal_mode_flag << 3 | self.break_flag << 4 | 1 << 5 | self.overflow_flag << 6 | self.sign_flag << 7 
-        
+        status = self.status_as_byte()
+        s = self.STACK_PAGE + self.stack_pointer
         self.stack_pointer = (self.stack_pointer - 1) % 0x100
         self.memory.write_byte(s, status)
         
@@ -654,17 +659,8 @@ class CPU:
     
     def RTI(self):
         # PLP
-        
         self.stack_pointer = (self.stack_pointer + 1) % 0x100
-        s = self.STACK_PAGE + self.stack_pointer
-        status = self.memory.read_byte(s)
-        self.carry_flag = 0 != status & 1
-        self.zero_flag = 0 != status & 2
-        self.interrupt_disable_flag = 0 != status & 4
-        self.decimal_mode_flag = 0 != status & 8
-        self.break_flag = 0 != status & 16
-        self.overflow_flag = 0 != status & 64
-        self.sign_flag = 0 != status & 128
+        self.status_from_byte(self.memory.read_byte(self.STACK_PAGE + self.stack_pointer))
         
         # pull PC
         s = self.STACK_PAGE + self.stack_pointer + 1
