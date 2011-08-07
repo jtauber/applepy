@@ -428,7 +428,7 @@ class CPU:
         self.accumulator = self.update_nz(self.y_index)
     
     def TSX(self):
-        self.x_index = self.stack_pointer
+        self.x_index = self.update_nz(self.stack_pointer)
     
     def TXS(self):
         self.stack_pointer = self.x_index
