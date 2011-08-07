@@ -11,34 +11,74 @@ def signed(x):
     return x
 
 
-class Memory:
-    def __init__(self, size):
+class RAM:
+    
+    def __init__(self, start, size):
+        self.start = start
+        self.end = start + size - 1
+        self.__mem = [0x00] * size
+    
+    def read_byte(self, address):
+        assert self.start <= address <= self.end
+        return self.__mem[address - self.start]
+    
+    def write_byte(self, address, value):
+        self.__mem[address] = value
+
+
+class SoftSwitches:
+    
+    def __init__(self):
+        self.kbd = 0x00
+    
+    def read_byte(self, address):
+        assert 0xC000 <= address <= 0xCFFF
+        if address == 0xC000:
+            return self.kbd
+        if address == 0xC010:
+            self.kbd = self.kbd & 0x7F
+        return 0x00
+
+
+class ROM:
+    
+    def __init__(self, start, size):
+        self.start = start
+        self.end = start + size - 1
         self.__mem = [0x00] * size
     
     def load(self, address, data):
         for offset, datum in enumerate(data):
-            self.__mem[address + offset] = datum
+            self.__mem[address - self.start + offset] = datum
     
     def load_file(self, address, filename):
         with open(filename) as f:
             for offset, datum in enumerate(f.read()):
-                self.__mem[address + offset] = ord(datum)
+                self.__mem[address - self.start + offset] = ord(datum)
     
     def read_byte(self, address):
-        assert address <= 0xFFFF
-        if 0xC000 <= address <= 0xCFFF:
-            if address == 0xC010:
-                self.__mem[0xC000] = self.__mem[0xC000] & 0x7F # clear keyboard
-        return self.__mem[address]
+        assert self.start <= address <= self.end
+        return self.__mem[address - self.start]
 
-    def write_byte_io(self, address, value):
-        self.__mem[address] = value
+
+class Memory:
     
-    def write_byte(self, address, value):
-        if 0x400 <= address < 0x800:
-            self.write_screen(address, value)
+    def __init__(self):
+        self.rom = ROM(0xD000, 0x3000)
+        
+        # available from http://www.easy68k.com/paulrsm/6502/index.html
+        self.rom.load_file(0xD000, "A2ROM.BIN")
+        
+        self.ram = RAM(0x0000, 0xC000)
+        self.softswitches = SoftSwitches()
+        
+    def read_byte(self, address):
         if address < 0xC000:
-            self.__mem[address] = value
+            return self.ram.read_byte(address)
+        elif address < 0xD000:
+            return self.softswitches.read_byte(address)
+        else:
+            return self.rom.read_byte(address)
     
     def read_word(self, address):
         return self.read_byte(address) + (self.read_byte(address + 1) << 8)
@@ -48,6 +88,12 @@ class Memory:
             return self.read_byte(address) + (self.read_byte(address & 0xFF00) << 8)
         else:
             return self.read_word(address)
+    
+    def write_byte(self, address, value):
+        if address < 0xC000:
+            self.ram.write_byte(address, value)
+        if 0x400 <= address < 0x800:
+            self.write_screen(address, value)
     
     def write_screen(self, address, value):
         base = address - 0x400
@@ -302,7 +348,7 @@ class CPU:
                 elif key == 0x7F:
                     key = 0x8
                 # win.addstr(15, 50, hex(key))
-                self.memory.write_byte_io(0xC000, 0x80 + key)
+                self.memory.softswitches.kbd = 0x80 + key
             except curses.error:
                 pass
             except TypeError:
@@ -689,10 +735,7 @@ class CPU:
 
 
 if __name__ == "__main__":
-    mem = Memory(0x10000)
-    
-    # available from http://www.easy68k.com/paulrsm/6502/index.html
-    mem.load_file(0xD000, "A2ROM.BIN")
+    mem = Memory()
     
     cpu = CPU(mem)
     curses.wrapper(cpu.run)
