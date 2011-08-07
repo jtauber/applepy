@@ -639,22 +639,19 @@ class CPU:
     # COMPARISON
     
     def CMP(self, operand_address):
-        value = self.memory.read_byte(operand_address)
-        self.carry_flag = (self.accumulator >= value)
-        self.zero_flag = (self.accumulator == value)
-        self.sign_flag = (self.accumulator < 0x80) # @@@ is this right?
+        result = self.accumulator - self.memory.read_byte(operand_address)
+        self.carry_flag = (result >= 0)
+        self.update_nz(result)
     
     def CPX(self, operand_address):
-        value = self.memory.read_byte(operand_address)
-        self.carry_flag = (self.x_index >= value)
-        self.zero_flag = (self.x_index == value)
-        self.sign_flag = (self.x_index < 0x80) # TODO: is this right?
+        result = self.x_index - self.memory.read_byte(operand_address)
+        self.carry_flag = (result >= 0)
+        self.update_nz(result)
     
     def CPY(self, operand_address):
-        value = self.memory.read_byte(operand_address)
-        self.carry_flag = (self.y_index >= value)
-        self.zero_flag = (self.y_index == value)
-        self.sign_flag = (self.y_index < 0x80) # @@@ is this right?
+        result = self.y_index - self.memory.read_byte(operand_address)
+        self.carry_flag = (result >= 0)
+        self.update_nz(result)
     
     # SYSTEM
     
