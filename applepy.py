@@ -251,7 +251,7 @@ class CPU:
     def reset(self):
         self.program_counter = self.memory.read_word(self.RESET_VECTOR)
     
-    def dump(self, win):
+    def dump(self, win, op):
         win.addstr(10, 50, "%04X got %02X" % (self.program_counter - 1, op))
         win.addstr(14, 50, "BUFFER:" +
             " ".join("%02X" % self.memory.read_byte(m) for m in range(0x200, 0x210))
@@ -280,7 +280,7 @@ class CPU:
         win.nodelay(True)
         while True:
             op = self.read_pc_byte()
-            # self.dump(win)
+            # self.dump(win, op)
             func = self.ops[op]
             if func is None:
                 curses.endwin()
