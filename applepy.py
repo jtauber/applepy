@@ -119,6 +119,226 @@ class Memory:
             pass
 
 
+class Disassemble:
+    def __init__(self, cpu, memory):
+        self.cpu = cpu
+        self.memory = memory
+
+        self.setup_ops()
+
+    def setup_ops(self):
+        self.ops = [None] * 0x100
+        self.ops[0x00] = ("BRK", )
+        self.ops[0x01] = ("ORA", self.indirect_x_mode)
+        self.ops[0x05] = ("ORA", self.zero_page_mode)
+        self.ops[0x06] = ("ASL", self.zero_page_mode)
+        self.ops[0x08] = ("PHP", )
+        self.ops[0x09] = ("ORA", self.immediate_mode)
+        self.ops[0x0A] = ("ASL", )
+        self.ops[0x0D] = ("ORA", self.absolute_mode)
+        self.ops[0x0E] = ("ASL", self.absolute_mode)
+        self.ops[0x10] = ("BPL", self.relative_mode)
+        self.ops[0x11] = ("ORA", self.indirect_y_mode)
+        self.ops[0x15] = ("ORA", self.zero_page_x_mode)
+        self.ops[0x16] = ("ASL", self.zero_page_x_mode)
+        self.ops[0x18] = ("CLC", )
+        self.ops[0x19] = ("ORA", self.absolute_y_mode)
+        self.ops[0x1D] = ("ORA", self.absolute_x_mode)
+        self.ops[0x1E] = ("ASL", self.absolute_x_mode)
+        self.ops[0x20] = ("JSR", self.absolute_mode)
+        self.ops[0x21] = ("AND", self.indirect_x_mode)
+        self.ops[0x24] = ("BIT", self.zero_page_mode)
+        self.ops[0x25] = ("AND", self.zero_page_mode)
+        self.ops[0x26] = ("ROL", self.zero_page_mode)
+        self.ops[0x28] = ("PLP", )
+        self.ops[0x29] = ("AND", self.immediate_mode)
+        self.ops[0x2A] = ("ROL", )
+        self.ops[0x2C] = ("BIT", self.absolute_mode)
+        self.ops[0x2D] = ("AND", self.absolute_mode)
+        self.ops[0x2E] = ("ROL", self.absolute_mode)
+        self.ops[0x30] = ("BMI", self.relative_mode)
+        self.ops[0x31] = ("AND", self.indirect_y_mode)
+        self.ops[0x35] = ("AND", self.zero_page_x_mode)
+        self.ops[0x36] = ("ROL", self.zero_page_x_mode)
+        self.ops[0x38] = ("SEC", )
+        self.ops[0x39] = ("AND", self.absolute_y_mode)
+        self.ops[0x3D] = ("AND", self.absolute_x_mode)
+        self.ops[0x3E] = ("ROL", self.absolute_x_mode)
+        self.ops[0x40] = ("RTI", )
+        self.ops[0x41] = ("EOR", self.indirect_x_mode)
+        self.ops[0x45] = ("EOR", self.zero_page_mode)
+        self.ops[0x46] = ("LSR", self.zero_page_mode)
+        self.ops[0x48] = ("PHA", )
+        self.ops[0x49] = ("EOR", self.immediate_mode)
+        self.ops[0x4A] = ("LSR", )
+        self.ops[0x4C] = ("JMP", self.absolute_mode)
+        self.ops[0x4D] = ("EOR", self.absolute_mode)
+        self.ops[0x4E] = ("LSR", self.absolute_mode)
+        self.ops[0x50] = ("BVC", self.relative_mode)
+        self.ops[0x51] = ("EOR", self.indirect_y_mode)
+        self.ops[0x55] = ("EOR", self.zero_page_x_mode)
+        self.ops[0x56] = ("LSR", self.zero_page_x_mode)
+        self.ops[0x58] = ("CLI", )
+        self.ops[0x59] = ("EOR", self.absolute_y_mode)
+        self.ops[0x5D] = ("EOR", self.absolute_x_mode)
+        self.ops[0x5E] = ("LSR", self.absolute_x_mode)
+        self.ops[0x60] = ("RTS", )
+        self.ops[0x61] = ("ADC", self.indirect_x_mode)
+        self.ops[0x65] = ("ADC", self.zero_page_mode)
+        self.ops[0x66] = ("ROR", self.zero_page_mode)
+        self.ops[0x68] = ("PLA", )
+        self.ops[0x69] = ("ADC", self.immediate_mode)
+        self.ops[0x6A] = ("ROR", )
+        self.ops[0x6C] = ("JMP", self.indirect_mode)
+        self.ops[0x6D] = ("ADC", self.absolute_mode)
+        self.ops[0x6E] = ("ROR", self.absolute_mode)
+        self.ops[0x70] = ("BVS", self.relative_mode)
+        self.ops[0x71] = ("ADC", self.indirect_y_mode)
+        self.ops[0x75] = ("ADC", self.zero_page_x_mode)
+        self.ops[0x76] = ("ROR", self.zero_page_x_mode)
+        self.ops[0x78] = ("SEI", )
+        self.ops[0x79] = ("ADC", self.absolute_y_mode)
+        self.ops[0x7D] = ("ADC", self.absolute_x_mode)
+        self.ops[0x7E] = ("ROR", self.absolute_x_mode)
+        self.ops[0x81] = ("STA", self.indirect_x_mode)
+        self.ops[0x84] = ("STY", self.zero_page_mode)
+        self.ops[0x85] = ("STA", self.zero_page_mode)
+        self.ops[0x86] = ("STX", self.zero_page_mode)
+        self.ops[0x88] = ("DEY", )
+        self.ops[0x8A] = ("TXA", )
+        self.ops[0x8C] = ("STY", self.absolute_mode)
+        self.ops[0x8D] = ("STA", self.absolute_mode)
+        self.ops[0x8E] = ("STX", self.absolute_mode)
+        self.ops[0x90] = ("BCC", self.relative_mode)
+        self.ops[0x91] = ("STA", self.indirect_y_mode)
+        self.ops[0x94] = ("STY", self.zero_page_x_mode)
+        self.ops[0x95] = ("STA", self.zero_page_x_mode)
+        self.ops[0x96] = ("STX", self.zero_page_y_mode)
+        self.ops[0x98] = ("TYA", )
+        self.ops[0x99] = ("STA", self.absolute_y_mode)
+        self.ops[0x9A] = ("TXS", )
+        self.ops[0x9D] = ("STA", self.absolute_x_mode)
+        self.ops[0xA0] = ("LDY", self.immediate_mode)
+        self.ops[0xA1] = ("LDA", self.indirect_x_mode)
+        self.ops[0xA2] = ("LDX", self.immediate_mode)
+        self.ops[0xA4] = ("LDY", self.zero_page_mode)
+        self.ops[0xA5] = ("LDA", self.zero_page_mode)
+        self.ops[0xA6] = ("LDX", self.zero_page_mode)
+        self.ops[0xA8] = ("TAY", )
+        self.ops[0xA9] = ("LDA", self.immediate_mode)
+        self.ops[0xAA] = ("TAX", )
+        self.ops[0xAC] = ("LDY", self.absolute_mode)
+        self.ops[0xAD] = ("LDA", self.absolute_mode)
+        self.ops[0xAE] = ("LDX", self.absolute_mode)
+        self.ops[0xB0] = ("BCS", self.relative_mode)
+        self.ops[0xB1] = ("LDA", self.indirect_y_mode)
+        self.ops[0xB4] = ("LDY", self.zero_page_x_mode)
+        self.ops[0xB5] = ("LDA", self.zero_page_x_mode)
+        self.ops[0xB6] = ("LDX", self.zero_page_y_mode)
+        self.ops[0xB8] = ("CLV", )
+        self.ops[0xB9] = ("LDA", self.absolute_y_mode)
+        self.ops[0xBA] = ("TSX", )
+        self.ops[0xBC] = ("LDY", self.absolute_x_mode)
+        self.ops[0xBD] = ("LDA", self.absolute_x_mode)
+        self.ops[0xBE] = ("LDX", self.absolute_y_mode)
+        self.ops[0xC0] = ("CPY", self.immediate_mode)
+        self.ops[0xC1] = ("CMP", self.indirect_x_mode)
+        self.ops[0xC4] = ("CPY", self.zero_page_mode)
+        self.ops[0xC5] = ("CMP", self.zero_page_mode)
+        self.ops[0xC6] = ("DEC", self.zero_page_mode)
+        self.ops[0xC8] = ("INY", )
+        self.ops[0xC9] = ("CMP", self.immediate_mode)
+        self.ops[0xCA] = ("DEX", )
+        self.ops[0xCC] = ("CPY", self.absolute_mode)
+        self.ops[0xCD] = ("CMP", self.absolute_mode)
+        self.ops[0xCE] = ("DEC", self.absolute_mode)
+        self.ops[0xD0] = ("BNE", self.relative_mode)
+        self.ops[0xD1] = ("CMP", self.indirect_y_mode)
+        self.ops[0xD5] = ("CMP", self.zero_page_x_mode)
+        self.ops[0xD6] = ("DEC", self.zero_page_x_mode)
+        self.ops[0xD8] = ("CLD", )
+        self.ops[0xD9] = ("CMP", self.absolute_y_mode)
+        self.ops[0xDD] = ("CMP", self.absolute_x_mode)
+        self.ops[0xDE] = ("DEC", self.absolute_x_mode)
+        self.ops[0xE0] = ("CPX", self.immediate_mode)
+        self.ops[0xE1] = ("SBC", self.indirect_x_mode)
+        self.ops[0xE4] = ("CPX", self.zero_page_mode)
+        self.ops[0xE5] = ("SBC", self.zero_page_mode)
+        self.ops[0xE6] = ("INC", self.zero_page_mode)
+        self.ops[0xE8] = ("INX", )
+        self.ops[0xE9] = ("SBC", self.immediate_mode)
+        self.ops[0xEA] = ("NOP", )
+        self.ops[0xEC] = ("CPX", self.absolute_mode)
+        self.ops[0xED] = ("SBC", self.absolute_mode)
+        self.ops[0xEE] = ("INC", self.absolute_mode)
+        self.ops[0xF0] = ("BEQ", self.relative_mode)
+        self.ops[0xF1] = ("SBC", self.indirect_y_mode)
+        self.ops[0xF5] = ("SBC", self.zero_page_x_mode)
+        self.ops[0xF6] = ("INC", self.zero_page_x_mode)
+        self.ops[0xF8] = ("SED", )
+        self.ops[0xF9] = ("SBC", self.absolute_y_mode)
+        self.ops[0xFD] = ("SBC", self.absolute_x_mode)
+        self.ops[0xFE] = ("INC", self.absolute_x_mode)
+
+
+    def absolute_mode(self, pc):
+        a = self.memory.read_word(pc+1)
+        return "$%04X    [%04X] = %02X" % (a, a, self.memory.read_word(a))
+
+    def absolute_x_mode(self, pc):
+        a = self.memory.read_word(pc+1)
+        e = a + self.cpu.x_index
+        return "$%04X,X  [%04X] = %02X" % (a, e, self.memory.read_byte(e))
+
+    def absolute_y_mode(self, pc):
+        a = self.memory.read_word(pc+1)
+        e = a + self.cpu.y_index
+        return "$%04X,Y    [%04X] = %02X" % (a, e, self.memory.read_byte(e))
+
+    def immediate_mode(self, pc):
+        return "#$%02X" % (self.memory.read_byte(pc+1))
+
+    def indirect_mode(self, pc):
+        a = self.memory.read_word(pc+1)
+        return "($%04X)  [%04X] = %02X" % (a, a, self.memory.read_word(a))
+
+    def indirect_x_mode(self, pc):
+        z = self.memory.read_byte(pc+1)
+        a = self.memory.read_word((z + self.cpu.x_index) % 0x100)
+        return "($%02X,X)   [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+
+    def indirect_y_mode(self, pc):
+        z = self.memory.read_byte(pc+1)
+        a = self.memory.read_word(z) + self.cpu.y_index
+        return "($%02X),Y  [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+
+    def relative_mode(self, pc):
+        return "$%04X" % (pc + signed(self.memory.read_byte(pc+1) + 2))
+
+    def zero_page_mode(self, pc):
+        a = self.memory.read_byte(pc+1)
+        return "$%02X      [%04X] = %02X" % (a, a, self.memory.read_byte(a))
+
+    def zero_page_x_mode(self, pc):
+        z = self.memory.read_byte(pc+1)
+        a = (z + self.cpu.x_index) % 0x100
+        return "$%02X,X    [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+
+    def zero_page_y_mode(self, pc):
+        z = self.memory.read_byte(pc+1)
+        a = (z + self.cpu.y_index) % 0x100
+        return "$%02X,Y    [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+
+
+    def disasm(self, pc):
+        op = self.memory.read_byte(pc)
+        info = self.ops[op]
+        s = "%02X %s" % (pc, info[0])
+        if len(info) > 1:
+            s += " " + info[1](pc)
+        return s
+
+
 class CPU:
     
     STACK_PAGE = 0x100
@@ -126,6 +346,7 @@ class CPU:
     
     def __init__(self, memory):
         self.memory = memory
+        self.disassemble = Disassemble(self, memory)
         
         self.accumulator = 0x00
         self.x_index = 0x00
@@ -302,7 +523,9 @@ class CPU:
         self.program_counter = self.memory.read_word(self.RESET_VECTOR)
     
     def dump(self, win, op):
-        win.addstr(10, 50, "%04X got %02X" % (self.program_counter - 1, op))
+        win.move(10, 50)
+        win.clrtoeol()
+        win.addstr(10, 50, self.disassemble.disasm(self.program_counter - 1))
         win.addstr(14, 50, "BUFFER:" +
             " ".join("%02X" % self.memory.read_byte(m) for m in range(0x200, 0x210))
         )
