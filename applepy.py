@@ -586,22 +586,47 @@ class CPU:
     def ADC(self, operand_address):
         # @@@ doesn't handle BCD yet
         assert not self.decimal_mode_flag
-        a1 = self.accumulator
-        a2 = self.memory.read_byte(operand_address)
-        result = a1 + a2 + self.carry_flag
-        self.accumulator = self.update_nzc(result)
-        self.overflow_flag = self.carry_flag ^ self.sign_flag
+        
+        a1 = a2 = self.accumulator
+        if a1 & 0x80:
+            a1 = (a1 & 0x7F) - 0x80
+        m1 = m2 = self.memory.read_byte(operand_address)
+        if m1 & 0x80:
+            m1 = (m1 & 0x7F) - 0x80
+        
+        # twos complement addition
+        result1 = a1 + m1 + self.carry_flag
+        
+        # unsigned addition
+        result2 = a2 + m2 + self.carry_flag
+        
+        self.accumulator = self.update_nzc(result2)
+        
+        # perhaps this could be calculated from result2 but result1 is more intuitive
+        self.overflow_flag = (result1 > 127) | (result1 < -128)
     
     def SBC(self, operand_address):
         # @@@ doesn't handle BCD yet
         assert not self.decimal_mode_flag
-        s1 = self.accumulator
-        s2 = self.memory.read_byte(operand_address)
-        result = s1 - s2
-        if not self.carry_flag:
-            result = result - 1
-        self.accumulator = self.update_nz(result) # @@@ carry flag?
-        self.overflow_flag = self.carry_flag ^ self.sign_flag
+        
+        a1 = a2 = self.accumulator
+        if a1 & 0x80:
+            a1 = (a1 & 0x7F) - 0x80
+        m1 = m2 = self.memory.read_byte(operand_address)
+        if m1 & 0x80:
+            m1 = (m1 & 0x7F) - 0x80
+        
+        # twos complement subtraction
+        result1 = a1 - m1 - self.carry_flag
+        
+        # unsigned subtraction
+        result2 = a2 - m2 - self.carry_flag
+        
+        self.accumulator = self.update_nz(result2)
+        self.carry_flag = (result2 >= 0)
+        
+        # perhaps this could be calculated from result2 but result1 is more intuitive
+        self.overflow_flag = (result1 > 127) | (result1 < -128)
     
     # BIT
     
