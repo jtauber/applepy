@@ -360,11 +360,6 @@ class CPU:
     
     ####
     
-    # NOP
-
-    def NOP(self):
-        pass
-    
     # LOAD / STORE
     
     def LDA(self, operand_address):
@@ -633,8 +628,50 @@ class CPU:
         self.zero_flag = (self.y_index == value)
         self.sign_flag = (self.y_index < 0x80) # @@@ is this right?
     
-    # BRK
-    # RTI
+    # SYSTEM
+    
+    def NOP(self):
+        pass
+    
+    def BRK(self):
+        # push PC
+        pc_hi, pc_lo = divmod(self.program_counter, 0x100)
+        
+        s = self.STACK_PAGE + self.stack_pointer
+        self.stack_pointer = (self.stack_pointer - 1) % 0x100
+        self.memory.write_byte(s, pc_hi)
+
+        self.stack_pointer = (self.stack_pointer - 1) % 0x100
+        self.memory.write_byte(s, pc_lo)
+        
+        # PHP
+        status = self.carry_flag | self.zero_flag << 1 | self.interrupt_disable_flag << 2 | self.decimal_mode_flag << 3 | self.break_flag << 4 | 1 << 5 | self.overflow_flag << 6 | self.sign_flag << 7 
+        
+        self.stack_pointer = (self.stack_pointer - 1) % 0x100
+        self.memory.write_byte(s, status)
+        
+        self.progress_counter = self.memory.read_word(0xFFFE)
+        self.break_flag = 1
+    
+    def RTI(self):
+        # PLP
+        
+        self.stack_pointer = (self.stack_pointer + 1) % 0x100
+        s = self.STACK_PAGE + self.stack_pointer
+        status = self.memory.read_byte(s)
+        self.carry_flag = 0 != status & 1
+        self.zero_flag = 0 != status & 2
+        self.interrupt_disable_flag = 0 != status & 4
+        self.decimal_mode_flag = 0 != status & 8
+        self.break_flag = 0 != status & 16
+        self.overflow_flag = 0 != status & 64
+        self.sign_flag = 0 != status & 128
+        
+        # pull PC
+        s = self.STACK_PAGE + self.stack_pointer + 1
+        self.stack_pointer += 2
+        self.progress_counter = self.memory.read_word(s)
+    
     
     # @@@ IRQ
     # @@@ NMI
