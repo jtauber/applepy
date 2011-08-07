@@ -8,14 +8,21 @@ Originally written 2001, updated 2011
 Apple ][ ROM available from http://www.easy68k.com/paulrsm/6502/index.html
 
 
+Credits
+-------
+
+Some code came from contributions from Christiaan Kelly in 2007.
+Significant fixes to the 2011 version from Greg Hewgill (see commit log).
+Curses bug report from Lee Gao.
+
+
 Status
 ------
 
 With original Apple ][ ROM it boots to monitor fine, most monitor commands
-work and you can go into Integer BASIC however, every command currently gives
-an error.
+work and you can go into Integer BASIC (with E000G) and write and run BASIC
+programs. Other ROMs have not been tested in any detail yet.
 
-With later ROMs it hangs on boot.
+The only I/O supported is the keyboard and text mode screen.
 
-Still debugging, but mostly likely subtleties in flags not being correctly
-updated.
+Curses is currently used for the screen, but I'll likely switch to Pygame.
