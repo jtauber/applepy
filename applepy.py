@@ -602,12 +602,10 @@ class CPU:
         # @@@ doesn't handle BCD yet
         assert not self.decimal_mode_flag
         
-        a1 = a2 = self.accumulator
-        if a1 & 0x80:
-            a1 = (a1 & 0x7F) - 0x80
-        m1 = m2 = self.memory.read_byte(operand_address)
-        if m1 & 0x80:
-            m1 = (m1 & 0x7F) - 0x80
+        a2 = self.accumulator
+        a1 = signed(a2)
+        m2 = self.memory.read_byte(operand_address)
+        m1 = signed(m2)
         
         # twos complement addition
         result1 = a1 + m1 + self.carry_flag
@@ -624,12 +622,10 @@ class CPU:
         # @@@ doesn't handle BCD yet
         assert not self.decimal_mode_flag
         
-        a1 = a2 = self.accumulator
-        if a1 & 0x80:
-            a1 = (a1 & 0x7F) - 0x80
-        m1 = m2 = self.memory.read_byte(operand_address)
-        if m1 & 0x80:
-            m1 = (m1 & 0x7F) - 0x80
+        a2 = self.accumulator
+        a1 = signed(a2)
+        m2 = self.memory.read_byte(operand_address)
+        m1 = signed(m2)
         
         # twos complement subtraction
         result1 = a1 - m1 - [1, 0][self.carry_flag]
