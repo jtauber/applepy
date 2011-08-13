@@ -104,6 +104,25 @@ class Display:
         self.screen = pygame.display.set_mode((560, 384))
         pygame.display.set_caption("ApplePy")
         self.mix = False
+
+        self.chargen = []
+        for c in self.characters:
+            chars = [[pygame.Surface((14, 16)), pygame.Surface((14, 16))],
+                     [pygame.Surface((14, 16)), pygame.Surface((14, 16))]]
+            for colour in (0, 1):
+                hue = (255, 255, 255) if colour else (0, 200, 0)
+                for inv in (0, 1):
+                    pixels = pygame.PixelArray(chars[colour][inv])
+                    off = hue if inv else (0, 0, 0)
+                    on = (0, 0, 0) if inv else hue
+                    for row in range(8):
+                        b = c[row] << 1
+                        for col in range(7):
+                            bit = (b >> (6 - col)) & 1
+                            pixels[2 * col][2 * row] = on if bit else off
+                            pixels[2 * col + 1][2 * row] = on if bit else off
+                    del pixels
+            self.chargen.append(chars)
     
     def txtclr(self):
         self.text = False
@@ -150,31 +169,14 @@ class Display:
             if row_group == 3:
                 return
             
-            pixels = pygame.PixelArray(self.screen)
-            
             if self.text or not self.mix or not row < 20:
                 mode, ch = divmod(value, 0x40)
                 
-                if self.colour:
-                    on = (255, 255, 255)
-                else:
-                    on = (0, 200, 0)
-                off = (0, 0, 0)
+                inv = mode in (0, 1)
                 
-                if mode == 0 or mode == 1:
-                    on, off = off, on
-                
-                for line in range(8):
-                    b = self.characters[ch][line] << 1
-                    for i in range(7):
-                        x = 2 * (column * 7 + (5 - i))
-                        y = 2 * (row * 8 + line)
-                        bit = (b >> i) % 2
-                        pixels[x][y] = on if bit else off
-                        pixels[x + 1][y] = on if bit else off
-                        pixels[x][y + 1] = (0, 0, 0)
-                        pixels[x + 1][y + 1] = (0, 0, 0)
+                self.screen.blit(self.chargen[ch][self.colour][inv], (2 * (column * 7), 2 * (row * 8)))
             else:
+                pixels = pygame.PixelArray(self.screen)
                 if not self.high_res:
                     lower, upper = divmod(value, 0x10)
                     
@@ -187,7 +189,7 @@ class Display:
                             x = column * 14 + dx
                             y = row * 16 + dy
                             pixels[x][y] = self.lores_colours[lower]
-            del pixels
+                del pixels
             
         elif start_hires <= address <= start_hires + 0x1FFF:
             if self.high_res:
