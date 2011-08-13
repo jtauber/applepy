@@ -1,5 +1,5 @@
 import unittest
-from applepy import Memory, CPU
+from cpu6502 import Memory, CPU
 
 
 class TestMemory(unittest.TestCase):
