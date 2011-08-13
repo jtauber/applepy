@@ -101,7 +101,7 @@ class Display:
     ]
     
     def __init__(self):
-        self.screen = pygame.display.set_mode((560, 432))
+        self.screen = pygame.display.set_mode((560, 384))
         pygame.display.set_caption("ApplePy")
     
     def txtclr(self):
@@ -175,7 +175,7 @@ class Display:
             b = self.characters[ch][line]
             for i in range(5):
                 x = 2 * (column * 7 + (5 - i))
-                y = 2 * (row * 9 + line)
+                y = 2 * (row * 8 + line)
                 bit = (b >> i) % 2
                 pixels[x][y] = on if bit else off
                 pixels[x + 1][y] = on if bit else off
@@ -193,13 +193,13 @@ class Display:
         
         pixels = pygame.PixelArray(self.screen)
         for dx in range(14):
-            for dy in range(9):
+            for dy in range(8):
                 x = column * 14 + dx
-                y = row * 18 + dy
+                y = row * 16 + dy
                 pixels[x][y] = self.lores_colours[upper]
-            for dy in range(9, 18):
+            for dy in range(8, 16):
                 x = column * 14 + dx
-                y = row * 18 + dy
+                y = row * 16 + dy
                 pixels[x][y] = self.lores_colours[lower]
         del pixels
 
