@@ -3,12 +3,120 @@
 # originally written 2001, updated 2011
 
 
-import curses
+import pygame
+
 
 def signed(x):
     if x > 0x7F:
         x = x - 0x100
     return x
+
+
+class Display:
+    
+    characters = [
+        [0b00000, 0b01110, 0b10001, 0b10101, 0b10111, 0b10110, 0b10000, 0b01111],
+        [0b00000, 0b00100, 0b01010, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001],
+        [0b00000, 0b11110, 0b10001, 0b10001, 0b11110, 0b10001, 0b10001, 0b11110],
+        [0b00000, 0b01110, 0b10001, 0b10000, 0b10000, 0b10000, 0b10001, 0b01110],
+        [0b00000, 0b11110, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b11110],
+        [0b00000, 0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b11111],
+        [0b00000, 0b11111, 0b10000, 0b10000, 0b11110, 0b10000, 0b10000, 0b10000],
+        [0b00000, 0b01111, 0b10000, 0b10000, 0b10000, 0b10011, 0b10001, 0b01111],
+        [0b00000, 0b10001, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001, 0b10001],
+        [0b00000, 0b01110, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110],
+        [0b00000, 0b00001, 0b00001, 0b00001, 0b00001, 0b00001, 0b10001, 0b01110],
+        [0b00000, 0b10001, 0b10010, 0b10100, 0b11000, 0b10100, 0b10010, 0b10001],
+        [0b00000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b10000, 0b11111],
+        [0b00000, 0b10001, 0b11011, 0b10101, 0b10101, 0b10001, 0b10001, 0b10001],
+        [0b00000, 0b10001, 0b10001, 0b11001, 0b10101, 0b10011, 0b10001, 0b10001],
+        [0b00000, 0b01110, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01110],
+        [0b00000, 0b11110, 0b10001, 0b10001, 0b11110, 0b10000, 0b10000, 0b10000],
+        [0b00000, 0b01110, 0b10001, 0b10001, 0b10001, 0b10101, 0b10010, 0b01101],
+        [0b00000, 0b11110, 0b10001, 0b10001, 0b11110, 0b10100, 0b10010, 0b10001],
+        [0b00000, 0b01110, 0b10001, 0b10000, 0b01110, 0b00001, 0b10001, 0b01110],
+        [0b00000, 0b11111, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100],
+        [0b00000, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01110],
+        [0b00000, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b01010, 0b00100],
+        [0b00000, 0b10001, 0b10001, 0b10001, 0b10101, 0b10101, 0b11011, 0b10001],
+        [0b00000, 0b10001, 0b10001, 0b01010, 0b00100, 0b01010, 0b10001, 0b10001],
+        [0b00000, 0b10001, 0b10001, 0b01010, 0b00100, 0b00100, 0b00100, 0b00100],
+        [0b00000, 0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b11111],
+        [0b00000, 0b11111, 0b11000, 0b11000, 0b11000, 0b11000, 0b11000, 0b11111],
+        [0b00000, 0b00000, 0b10000, 0b01000, 0b00100, 0b00010, 0b00001, 0b00000],
+        [0b00000, 0b11111, 0b00011, 0b00011, 0b00011, 0b00011, 0b00011, 0b11111],
+        [0b00000, 0b00000, 0b00000, 0b00100, 0b01010, 0b10001, 0b00000, 0b00000],
+        [0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111],
+        [0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
+        [0b00000, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100, 0b00000, 0b00100],
+        [0b00000, 0b01010, 0b01010, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
+        [0b00000, 0b01010, 0b01010, 0b11111, 0b01010, 0b11111, 0b01010, 0b01010],
+        [0b00000, 0b00100, 0b01111, 0b10100, 0b01110, 0b00101, 0b11110, 0b00100],
+        [0b00000, 0b11000, 0b11001, 0b00010, 0b00100, 0b01000, 0b10011, 0b00011],
+        [0b00000, 0b01000, 0b10100, 0b10100, 0b01000, 0b10101, 0b10010, 0b01101],
+        [0b00000, 0b00100, 0b00100, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000],
+        [0b00000, 0b00100, 0b01000, 0b10000, 0b10000, 0b10000, 0b01000, 0b00100],
+        [0b00000, 0b00100, 0b00010, 0b00001, 0b00001, 0b00001, 0b00010, 0b00100],
+        [0b00000, 0b00100, 0b10101, 0b01110, 0b00100, 0b01110, 0b10101, 0b00100],
+        [0b00000, 0b00000, 0b00100, 0b00100, 0b11111, 0b00100, 0b00100, 0b00000],
+        [0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00100, 0b00100, 0b01000],
+        [0b00000, 0b00000, 0b00000, 0b00000, 0b11111, 0b00000, 0b00000, 0b00000],
+        [0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00100],
+        [0b00000, 0b00000, 0b00001, 0b00010, 0b00100, 0b01000, 0b10000, 0b00000],
+        [0b00000, 0b01110, 0b10001, 0b10011, 0b10101, 0b11001, 0b10001, 0b01110],
+        [0b00000, 0b00100, 0b01100, 0b00100, 0b00100, 0b00100, 0b00100, 0b01110],
+        [0b00000, 0b01110, 0b10001, 0b00001, 0b00110, 0b01000, 0b10000, 0b11111],
+        [0b00000, 0b11111, 0b00001, 0b00010, 0b00110, 0b00001, 0b10001, 0b01110],
+        [0b00000, 0b00010, 0b00110, 0b01010, 0b10010, 0b11111, 0b00010, 0b00010],
+        [0b00000, 0b11111, 0b10000, 0b11110, 0b00001, 0b00001, 0b10001, 0b01110],
+        [0b00000, 0b00111, 0b01000, 0b10000, 0b11110, 0b10001, 0b10001, 0b01110],
+        [0b00000, 0b11111, 0b00001, 0b00010, 0b00100, 0b01000, 0b01000, 0b01000],
+        [0b00000, 0b01110, 0b10001, 0b10001, 0b01110, 0b10001, 0b10001, 0b01110],
+        [0b00000, 0b01110, 0b10001, 0b10001, 0b01111, 0b00001, 0b00010, 0b11100],
+        [0b00000, 0b00000, 0b00000, 0b00100, 0b00000, 0b00100, 0b00000, 0b00000],
+        [0b00000, 0b00000, 0b00000, 0b00100, 0b00000, 0b00100, 0b00100, 0b01000],
+        [0b00000, 0b00010, 0b00100, 0b01000, 0b10000, 0b01000, 0b00100, 0b00010],
+        [0b00000, 0b00000, 0b00000, 0b11111, 0b00000, 0b11111, 0b00000, 0b00000],
+        [0b00000, 0b01000, 0b00100, 0b00010, 0b00001, 0b00010, 0b00100, 0b01000],
+        [0b00000, 0b01110, 0b10001, 0b00010, 0b00100, 0b00100, 0b00000, 0b00100]
+    ]
+    
+    def __init__(self):
+        self.screen = pygame.display.set_mode((560, 432))
+        pygame.display.set_caption("ApplePy")
+    
+    def update(self, address, value):
+        base = address - 0x400
+        hi, lo = divmod(base, 0x80)
+        row_group, column  = divmod(lo, 0x28)
+        row = hi + 8 * row_group
+        
+        # skip if writing to row group 3
+        if row_group == 3:
+            return
+        
+        mode, ch = divmod(value, 0x40)
+        
+        if mode == 0: # inverse
+            on = (0, 0, 0)
+            off = (0, 200, 0)
+        elif mode == 1: # flash
+            on = (0, 0, 0)
+            off = (0, 200, 0)
+        else: # normal
+            on = (0, 200, 0)
+            off = (0, 0, 0)
+            
+        pixels = pygame.PixelArray(self.screen)
+        for line in range(8):
+            b = self.characters[ch][line]
+            for i in range(5):
+                x = 2 * (column * 7 + (5 - i))
+                y = 2 * (row * 9 + line)
+                bit = (b >> i) % 2
+                pixels[x][y] = on if bit else off
+                pixels[x + 1][y] = on if bit else off
+        del pixels
 
 
 class RAM:
@@ -63,7 +171,8 @@ class ROM:
 
 class Memory:
     
-    def __init__(self):
+    def __init__(self, display):
+        self.display = display
         self.rom = ROM(0xD000, 0x3000)
         
         # available from http://www.easy68k.com/paulrsm/6502/index.html
@@ -93,33 +202,7 @@ class Memory:
         if address < 0xC000:
             self.ram.write_byte(address, value)
         if 0x400 <= address < 0x800:
-            self.write_screen(address, value)
-    
-    def write_screen(self, address, value):
-        base = address - 0x400
-        hi, lo = divmod(base, 0x80)
-        row_group, column  = divmod(lo, 0x28)
-        row = hi + 8 * row_group
-        
-        # skip if writing to row group 3
-        if row_group == 3:
-            return
-        
-        c = chr(0x20 + ((value + 0x20) % 0x40))
-        
-        if value < 0x40:
-            attr = curses.A_DIM
-        elif value < 0x80:
-            attr = curses.A_REVERSE
-        elif value < 0xA0:
-            attr = curses.A_UNDERLINE
-        else:
-            attr = curses.A_DIM
-        
-        try:
-            self.win.addch(row, column, c, attr)
-        except curses.error:
-            pass
+            self.display.update(address, value)
 
 
 class Disassemble:
@@ -523,41 +606,13 @@ class CPU:
     def reset(self):
         self.program_counter = self.memory.read_word(self.RESET_VECTOR)
     
-    def dump(self, win, op):
-        win.move(10, 50)
-        win.clrtoeol()
-        win.addstr(10, 50, self.disassemble.disasm(self.program_counter - 1))
-        win.addstr(14, 50, "BUFFER:" +
-            " ".join("%02X" % self.memory.read_byte(m) for m in range(0x200, 0x210))
-        )
-        win.addstr(11, 50, "A=%02X X=%02X Y=%02X S=%02X V=%02X B=%02X D=%02X I=%02X Z=%02X C=%02X PC=%04X S=%02X" % (
-            self.accumulator,
-            self.x_index,
-            self.y_index,
-            self.sign_flag,
-            self.overflow_flag,
-            self.break_flag,
-            self.decimal_mode_flag,
-            self.interrupt_disable_flag,
-            self.zero_flag,
-            self.carry_flag,
-            self.program_counter - 1,
-            self.stack_pointer))
-        win.addstr(12, 50, "STACK:" +
-            " ".join("%02X" % self.memory.read_byte(self.STACK_PAGE + i) for i in range(255, self.stack_pointer, -1))
-        )
-        
-    def run(self, win):
-        self.memory.win = win
-        win.clear()
-        curses.noecho()
-        win.nodelay(True)
-        while True:
+    def run(self):
+        update_cycle = 0
+        quit = False
+        while not quit:
             op = self.read_pc_byte()
-            # self.dump(win, op)
             func = self.ops[op]
             if func is None:
-                curses.endwin()
                 print "UNKNOWN OP"
                 print hex(self.program_counter - 1)
                 print hex(op)
@@ -565,18 +620,21 @@ class CPU:
             else:
                 self.ops[op]()
             
-            try:
-                key = ord(win.getkey())
-                if key == 0xA:
-                    key = 0xD
-                elif key == 0x7F:
-                    key = 0x8
-                # win.addstr(15, 50, hex(key))
-                self.memory.softswitches.kbd = 0x80 + key
-            except curses.error:
-                pass
-            except TypeError:
-                pass
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    quit = True
+                
+                if event.type == pygame.KEYDOWN:
+                    if event.unicode:
+                        key = ord(event.unicode)
+                        if key == 0x7F:
+                            key = 0x08
+                        self.memory.softswitches.kbd = 0x80 + key
+            
+            update_cycle += 1
+            if update_cycle >= 1024:
+                pygame.display.flip()
+                update_cycle = 0
     
     ####
     
@@ -959,7 +1017,8 @@ class CPU:
 
 
 if __name__ == "__main__":
-    mem = Memory()
+    display = Display()
+    mem = Memory(display)
     
     cpu = CPU(mem)
-    curses.wrapper(cpu.run)
+    cpu.run()
