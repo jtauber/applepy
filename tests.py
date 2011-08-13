@@ -1,11 +1,11 @@
 import unittest
-from applepy import Memory, CPU
+from cpu6502 import Memory, CPU
 
 
 class TestMemory(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
     
     def test_load(self):
         self.memory.load(0x1000, [0x01, 0x02, 0x03])
@@ -14,9 +14,9 @@ class TestMemory(unittest.TestCase):
         self.assertEqual(self.memory.read_byte(None, 0x1002), 0x03)
     
     def test_write(self):
-        self.memory.write_byte(0x1000, 0x11)
-        self.memory.write_byte(0x1001, 0x12)
-        self.memory.write_byte(0x1002, 0x13)
+        self.memory.write_byte(None, 0x1000, 0x11)
+        self.memory.write_byte(None, 0x1001, 0x12)
+        self.memory.write_byte(None, 0x1002, 0x13)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x11)
         self.assertEqual(self.memory.read_byte(None, 0x1001), 0x12)
         self.assertEqual(self.memory.read_byte(None, 0x1002), 0x13)
@@ -25,7 +25,7 @@ class TestMemory(unittest.TestCase):
 class TestLoadStoreOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
         self.memory.load(0x1000, [0x00, 0x01, 0x7F, 0x80, 0xFF])
     
@@ -114,7 +114,7 @@ class TestLoadStoreOperations(unittest.TestCase):
 class TestRegisterTransferOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_TAX(self):
@@ -189,7 +189,7 @@ class TestRegisterTransferOperations(unittest.TestCase):
 class TestStackOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_TSX(self):
@@ -237,11 +237,11 @@ class TestStackOperations(unittest.TestCase):
 class TestLogicalOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_AND(self):
-        self.memory.write_byte(0x1000, 0x37)
+        self.memory.write_byte(None, 0x1000, 0x37)
         self.cpu.accumulator = 0x34
         self.cpu.AND(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x34)
@@ -254,7 +254,7 @@ class TestLogicalOperations(unittest.TestCase):
         self.assertEqual(self.cpu.sign_flag, 0)
     
     def test_EOR(self):
-        self.memory.write_byte(0x1000, 0x37)
+        self.memory.write_byte(None, 0x1000, 0x37)
         self.cpu.accumulator = 0x34
         self.cpu.EOR(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x03)
@@ -272,7 +272,7 @@ class TestLogicalOperations(unittest.TestCase):
         self.assertEqual(self.cpu.sign_flag, 0)
     
     def test_ORA(self):
-        self.memory.write_byte(0x1000, 0x37)
+        self.memory.write_byte(None, 0x1000, 0x37)
         self.cpu.accumulator = 0x34
         self.cpu.ORA(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x37)
@@ -290,31 +290,31 @@ class TestLogicalOperations(unittest.TestCase):
         self.assertEqual(self.cpu.sign_flag, 0)
     
     def test_BIT(self):
-        self.memory.write_byte(0x1000, 0x00)
+        self.memory.write_byte(None, 0x1000, 0x00)
         self.cpu.accumulator = 0x00
         self.cpu.BIT(0x1000)
         self.assertEqual(self.cpu.overflow_flag, 0)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1)
-        self.memory.write_byte(0x1000, 0x40)
+        self.memory.write_byte(None, 0x1000, 0x40)
         self.cpu.accumulator = 0x00
         self.cpu.BIT(0x1000)
         self.assertEqual(self.cpu.overflow_flag, 1)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1)
-        self.memory.write_byte(0x1000, 0x80)
+        self.memory.write_byte(None, 0x1000, 0x80)
         self.cpu.accumulator = 0x00
         self.cpu.BIT(0x1000)
         self.assertEqual(self.cpu.overflow_flag, 0)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 1)
-        self.memory.write_byte(0x1000, 0xC0)
+        self.memory.write_byte(None, 0x1000, 0xC0)
         self.cpu.accumulator = 0x00
         self.cpu.BIT(0x1000)
         self.assertEqual(self.cpu.overflow_flag, 1)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 1)
-        self.memory.write_byte(0x1000, 0xC0)
+        self.memory.write_byte(None, 0x1000, 0xC0)
         self.cpu.accumulator = 0xC0
         self.cpu.BIT(0x1000)
         self.assertEqual(self.cpu.overflow_flag, 1)
@@ -325,7 +325,7 @@ class TestLogicalOperations(unittest.TestCase):
 class TestArithmeticOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_ADC_without_BCD(self):
@@ -335,7 +335,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # 1 + 1 = 2  (C = 0; V = 0)
         self.cpu.carry_flag = 0
         self.cpu.accumulator = 0x01
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.ADC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x02)
         self.assertEqual(self.cpu.carry_flag, 0)
@@ -344,7 +344,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # 1 + -1 = 0  (C = 1; V = 0)
         self.cpu.carry_flag = 0
         self.cpu.accumulator = 0x01
-        self.memory.write_byte(0x1000, 0xFF)
+        self.memory.write_byte(None, 0x1000, 0xFF)
         self.cpu.ADC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x00)
         self.assertEqual(self.cpu.carry_flag, 1)
@@ -353,7 +353,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # 127 + 1 = 128  (C = 0; V = 1)
         self.cpu.carry_flag = 0
         self.cpu.accumulator = 0x7F
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.ADC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x80) # @@@
         self.assertEqual(self.cpu.carry_flag, 0)
@@ -362,7 +362,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # -128 + -1 = -129  (C = 1; V = 1)
         self.cpu.carry_flag = 0
         self.cpu.accumulator = 0x80
-        self.memory.write_byte(0x1000, 0xFF)
+        self.memory.write_byte(None, 0x1000, 0xFF)
         self.cpu.ADC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x7F) # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
@@ -371,7 +371,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # 63 + 64 + 1 = 128  (C = 0; V = 1)
         self.cpu.carry_flag = 1
         self.cpu.accumulator = 0x3F
-        self.memory.write_byte(0x1000, 0x40)
+        self.memory.write_byte(None, 0x1000, 0x40)
         self.cpu.ADC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x80)
         self.assertEqual(self.cpu.carry_flag, 0)
@@ -379,14 +379,14 @@ class TestArithmeticOperations(unittest.TestCase):
     
     def test_SBC_without_BCD(self):
         self.cpu.accumulator = 0x02
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x00)
         self.assertEqual(self.cpu.carry_flag, 1)
         self.assertEqual(self.cpu.overflow_flag, 0)
         
         self.cpu.accumulator = 0x01
-        self.memory.write_byte(0x1000, 0x02)
+        self.memory.write_byte(None, 0x1000, 0x02)
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0xFF)
         self.assertEqual(self.cpu.carry_flag, 0)
@@ -397,7 +397,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # 0 - 1 = -1  (V = 0)
         self.cpu.carry_flag = 1
         self.cpu.accumulator = 0x00
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0xFF)
         self.assertEqual(self.cpu.carry_flag, 0)
@@ -406,7 +406,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # -128 - 1 = -129  (V = 1)
         self.cpu.carry_flag = 1
         self.cpu.accumulator = 0x80
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x7F)
         self.assertEqual(self.cpu.carry_flag, 1)
@@ -415,7 +415,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # 127 - -1 = 128  (V = 1)
         self.cpu.carry_flag = 1
         self.cpu.accumulator = 0x7F
-        self.memory.write_byte(0x1000, 0xFF)
+        self.memory.write_byte(None, 0x1000, 0xFF)
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x80)
         self.assertEqual(self.cpu.carry_flag, 0)
@@ -424,7 +424,7 @@ class TestArithmeticOperations(unittest.TestCase):
         # -64 -64 -1 = -129  (V = 1)
         self.cpu.carry_flag = 0
         self.cpu.accumulator = 0xC0
-        self.memory.write_byte(0x1000, 0x40)
+        self.memory.write_byte(None, 0x1000, 0x40)
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x7F)
         self.assertEqual(self.cpu.carry_flag, 1)
@@ -434,35 +434,35 @@ class TestArithmeticOperations(unittest.TestCase):
     
     def test_CMP(self):
         self.cpu.accumulator = 0x0A
-        self.memory.write_byte(0x1000, 0x09)
+        self.memory.write_byte(None, 0x1000, 0x09)
         self.cpu.CMP(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.accumulator = 0x0A
-        self.memory.write_byte(0x1000, 0x0B)
+        self.memory.write_byte(None, 0x1000, 0x0B)
         self.cpu.CMP(0x1000)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 0)
         
         self.cpu.accumulator = 0x0A
-        self.memory.write_byte(0x1000, 0x0A)
+        self.memory.write_byte(None, 0x1000, 0x0A)
         self.cpu.CMP(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.accumulator = 0xA0
-        self.memory.write_byte(0x1000, 0x0A)
+        self.memory.write_byte(None, 0x1000, 0x0A)
         self.cpu.CMP(0x1000)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.accumulator = 0x0A
-        self.memory.write_byte(0x1000, 0xA0)
+        self.memory.write_byte(None, 0x1000, 0xA0)
         self.cpu.CMP(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0) # @@@
         self.assertEqual(self.cpu.zero_flag, 0)
@@ -470,35 +470,35 @@ class TestArithmeticOperations(unittest.TestCase):
     
     def test_CPX(self):
         self.cpu.x_index = 0x0A
-        self.memory.write_byte(0x1000, 0x09)
+        self.memory.write_byte(None, 0x1000, 0x09)
         self.cpu.CPX(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.x_index = 0x0A
-        self.memory.write_byte(0x1000, 0x0B)
+        self.memory.write_byte(None, 0x1000, 0x0B)
         self.cpu.CPX(0x1000)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 0)
         
         self.cpu.x_index = 0x0A
-        self.memory.write_byte(0x1000, 0x0A)
+        self.memory.write_byte(None, 0x1000, 0x0A)
         self.cpu.CPX(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.x_index = 0xA0
-        self.memory.write_byte(0x1000, 0x0A)
+        self.memory.write_byte(None, 0x1000, 0x0A)
         self.cpu.CPX(0x1000)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.x_index = 0x0A
-        self.memory.write_byte(0x1000, 0xA0)
+        self.memory.write_byte(None, 0x1000, 0xA0)
         self.cpu.CPX(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0) # @@@
         self.assertEqual(self.cpu.zero_flag, 0)
@@ -506,35 +506,35 @@ class TestArithmeticOperations(unittest.TestCase):
     
     def test_CPY(self):
         self.cpu.y_index = 0x0A
-        self.memory.write_byte(0x1000, 0x09)
+        self.memory.write_byte(None, 0x1000, 0x09)
         self.cpu.CPY(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.y_index = 0x0A
-        self.memory.write_byte(0x1000, 0x0B)
+        self.memory.write_byte(None, 0x1000, 0x0B)
         self.cpu.CPY(0x1000)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 0)
         
         self.cpu.y_index = 0x0A
-        self.memory.write_byte(0x1000, 0x0A)
+        self.memory.write_byte(None, 0x1000, 0x0A)
         self.cpu.CPY(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.y_index = 0xA0
-        self.memory.write_byte(0x1000, 0x0A)
+        self.memory.write_byte(None, 0x1000, 0x0A)
         self.cpu.CPY(0x1000)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 1)
         
         self.cpu.y_index = 0x0A
-        self.memory.write_byte(0x1000, 0xA0)
+        self.memory.write_byte(None, 0x1000, 0xA0)
         self.cpu.CPY(0x1000)
         self.assertEqual(self.cpu.sign_flag, 0) # @@@
         self.assertEqual(self.cpu.zero_flag, 0)
@@ -544,21 +544,21 @@ class TestArithmeticOperations(unittest.TestCase):
 class TestIncrementDecrementOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_INC(self):
-        self.memory.write_byte(0x1000, 0x00)
+        self.memory.write_byte(None, 0x1000, 0x00)
         self.cpu.INC(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x01)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 0)
-        self.memory.write_byte(0x1000, 0x7F)
+        self.memory.write_byte(None, 0x1000, 0x7F)
         self.cpu.INC(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x80)
         self.assertEqual(self.cpu.sign_flag, 1)
         self.assertEqual(self.cpu.zero_flag, 0)
-        self.memory.write_byte(0x1000, 0xFF)
+        self.memory.write_byte(None, 0x1000, 0xFF)
         self.cpu.INC(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x00)
         self.assertEqual(self.cpu.sign_flag, 0)
@@ -599,17 +599,17 @@ class TestIncrementDecrementOperations(unittest.TestCase):
         self.assertEqual(self.cpu.zero_flag, 1)
     
     def test_DEC(self):
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.DEC(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x00)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1)
-        self.memory.write_byte(0x1000, 0x80)
+        self.memory.write_byte(None, 0x1000, 0x80)
         self.cpu.DEC(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x7F)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 0)
-        self.memory.write_byte(0x1000, 0x00)
+        self.memory.write_byte(None, 0x1000, 0x00)
         self.cpu.DEC(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0xFF)
         self.assertEqual(self.cpu.sign_flag, 1)
@@ -653,7 +653,7 @@ class TestIncrementDecrementOperations(unittest.TestCase):
 class TestShiftOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_ASL(self):
@@ -663,7 +663,7 @@ class TestShiftOperations(unittest.TestCase):
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 0)
-        self.memory.write_byte(0x1000, 0x02)
+        self.memory.write_byte(None, 0x1000, 0x02)
         self.cpu.ASL(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x04)
         self.assertEqual(self.cpu.sign_flag, 0)
@@ -683,7 +683,7 @@ class TestShiftOperations(unittest.TestCase):
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1)
         self.assertEqual(self.cpu.carry_flag, 1)
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.LSR(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x00)
         self.assertEqual(self.cpu.sign_flag, 0)
@@ -712,14 +712,14 @@ class TestShiftOperations(unittest.TestCase):
         self.assertEqual(self.cpu.zero_flag, 0) # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 0
-        self.memory.write_byte(0x1000, 0x80)
+        self.memory.write_byte(None, 0x1000, 0x80)
         self.cpu.ROL(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x00)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1) # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 1
-        self.memory.write_byte(0x1000, 0x80)
+        self.memory.write_byte(None, 0x1000, 0x80)
         self.cpu.ROL(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x01)
         self.assertEqual(self.cpu.sign_flag, 0)
@@ -742,14 +742,14 @@ class TestShiftOperations(unittest.TestCase):
         self.assertEqual(self.cpu.zero_flag, 0) # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 0
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.ROR(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x00)
         self.assertEqual(self.cpu.sign_flag, 0)
         self.assertEqual(self.cpu.zero_flag, 1) # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 1
-        self.memory.write_byte(0x1000, 0x01)
+        self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.ROR(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x80)
         self.assertEqual(self.cpu.sign_flag, 1) # @@@
@@ -760,7 +760,7 @@ class TestShiftOperations(unittest.TestCase):
 class TestJumpCallOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_JMP(self):
@@ -775,8 +775,8 @@ class TestJumpCallOperations(unittest.TestCase):
         self.assertEqual(self.memory.read_byte(None, self.cpu.STACK_PAGE + self.cpu.stack_pointer + 2), 0x0F)
     
     def test_RTS(self):
-        self.memory.write_byte(self.cpu.STACK_PAGE + 0xFF, 0x12)
-        self.memory.write_byte(self.cpu.STACK_PAGE + 0xFE, 0x33)
+        self.memory.write_byte(None, self.cpu.STACK_PAGE + 0xFF, 0x12)
+        self.memory.write_byte(None, self.cpu.STACK_PAGE + 0xFE, 0x33)
         self.cpu.stack_pointer = 0xFD
         self.cpu.RTS()
         self.assertEqual(self.cpu.program_counter, 0x1234)
@@ -792,7 +792,7 @@ class TestJumpCallOperations(unittest.TestCase):
 class TestBranchOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_BCC(self):
@@ -879,7 +879,7 @@ class TestBranchOperations(unittest.TestCase):
 class TestStatusFlagOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_CLC(self):
@@ -921,7 +921,7 @@ class TestStatusFlagOperations(unittest.TestCase):
 class TestSystemFunctionOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_BRK(self):
@@ -936,9 +936,9 @@ class TestSystemFunctionOperations(unittest.TestCase):
         self.assertEqual(self.memory.read_byte(None, self.cpu.STACK_PAGE + self.cpu.stack_pointer + 3), 0x10)
     
     def test_RTI(self):
-        self.memory.write_byte(self.cpu.STACK_PAGE + 0xFF, 0x12)
-        self.memory.write_byte(self.cpu.STACK_PAGE + 0xFE, 0x33)
-        self.memory.write_byte(self.cpu.STACK_PAGE + 0xFD, 0x20)
+        self.memory.write_byte(None, self.cpu.STACK_PAGE + 0xFF, 0x12)
+        self.memory.write_byte(None, self.cpu.STACK_PAGE + 0xFE, 0x33)
+        self.memory.write_byte(None, self.cpu.STACK_PAGE + 0xFD, 0x20)
         self.cpu.stack_pointer = 0xFC
         self.cpu.RTI()
         self.assertEqual(self.cpu.program_counter, 0x1233)
@@ -951,7 +951,7 @@ class TestSystemFunctionOperations(unittest.TestCase):
 class Test6502Bugs(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory()
+        self.memory = Memory(use_stdio=False)
         self.cpu = CPU(self.memory)
     
     def test_zero_page_x(self):
