@@ -103,18 +103,21 @@ class Display:
     def __init__(self):
         self.screen = pygame.display.set_mode((560, 384))
         pygame.display.set_caption("ApplePy")
+        self.mix = False
     
     def txtclr(self):
         self.text = False
     
     def txtset(self):
         self.text = True
+        self.colour = False
     
     def mixclr(self):
         self.mix = False
     
     def mixset(self):
         self.mix = True
+        self.colour = True
     
     def lowscr(self):
         self.page = 1
@@ -150,15 +153,14 @@ class Display:
             if self.text or not self.mix or not row < 20:
                 mode, ch = divmod(value, 0x40)
                 
-                if mode == 0: # inverse
-                    on = (0, 0, 0)
-                    off = (0, 200, 0)
-                elif mode == 1: # flash
-                    on = (0, 0, 0)
-                    off = (0, 200, 0)
-                else: # normal
+                if self.colour:
+                    on = (255, 255, 255)
+                else:
                     on = (0, 200, 0)
-                    off = (0, 0, 0)
+                off = (0, 0, 0)
+                
+                if mode == 0 or mode == 1:
+                    on, off = off, on
                 
                 for line in range(8):
                     b = self.characters[ch][line] << 1
