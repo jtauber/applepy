@@ -205,14 +205,36 @@ class Display:
                 if row < 192 and column < 40:
                     
                     pixels = pygame.PixelArray(self.screen)
+                    msb = value // 0x80
+
                     for b in range(7):
-                        c = 0xFFFFFF if (value & (1 << b)) else 0
-                        x = 2 * (column * 7 + b)
+                        c = value & (1 << b)
+                        xx = (column * 7 + b)
+                        x = 2 * xx
                         y = 2 * row
-                        pixels[x][y] = c
-                        pixels[x + 1][y] = c
-                        pixels[x][y + 1] = c
-                        pixels[x + 1][y + 1] = c
+                        
+                        if msb:
+                            if xx % 2:
+                                pixels[x][y] = (0, 0, 0)
+                                # orange
+                                pixels[x + 1][y] = (255, 192, 0) if c else (0, 0, 0)
+                            else:
+                                # blue
+                                pixels[x][y] = (0, 128, 224) if c else (0, 0, 0)
+                                pixels[x + 1][y] = (0, 0, 0)
+                        else:
+                            if xx % 2:
+                                pixels[x][y] = (0, 0, 0)
+                                # green
+                                pixels[x + 1][y] = (0, 255, 0) if c else (0, 0, 0)
+                            else:
+                                # violet
+                                pixels[x][y] = (255, 0, 255) if c else (0, 0, 0)
+                                pixels[x + 1][y] = (0, 0, 0)
+
+                        pixels[x][y + 1] = (0, 0, 0)
+                        pixels[x + 1][y + 1] = (0, 0, 0)
+                                
                     del pixels
 
 
