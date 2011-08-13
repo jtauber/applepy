@@ -5,7 +5,7 @@ from applepy import Memory, CPU
 class TestMemory(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
     
     def test_load(self):
         self.memory.load(0x1000, [0x01, 0x02, 0x03])
@@ -25,7 +25,7 @@ class TestMemory(unittest.TestCase):
 class TestLoadStoreOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
         self.memory.load(0x1000, [0x00, 0x01, 0x7F, 0x80, 0xFF])
     
@@ -114,7 +114,7 @@ class TestLoadStoreOperations(unittest.TestCase):
 class TestRegisterTransferOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_TAX(self):
@@ -189,7 +189,7 @@ class TestRegisterTransferOperations(unittest.TestCase):
 class TestStackOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_TSX(self):
@@ -237,7 +237,7 @@ class TestStackOperations(unittest.TestCase):
 class TestLogicalOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_AND(self):
@@ -325,7 +325,7 @@ class TestLogicalOperations(unittest.TestCase):
 class TestArithmeticOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_ADC_without_BCD(self):
@@ -544,7 +544,7 @@ class TestArithmeticOperations(unittest.TestCase):
 class TestIncrementDecrementOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_INC(self):
@@ -653,7 +653,7 @@ class TestIncrementDecrementOperations(unittest.TestCase):
 class TestShiftOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_ASL(self):
@@ -760,7 +760,7 @@ class TestShiftOperations(unittest.TestCase):
 class TestJumpCallOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_JMP(self):
@@ -792,7 +792,7 @@ class TestJumpCallOperations(unittest.TestCase):
 class TestBranchOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_BCC(self):
@@ -879,7 +879,7 @@ class TestBranchOperations(unittest.TestCase):
 class TestStatusFlagOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_CLC(self):
@@ -921,13 +921,12 @@ class TestStatusFlagOperations(unittest.TestCase):
 class TestSystemFunctionOperations(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_BRK(self):
         self.cpu.program_counter = 0x1000
-        self.memory.write_byte(0xFFFE, 0x00)
-        self.memory.write_byte(0xFFFF, 0x20)
+        self.memory.rom.load(0xFFFE, [0x00, 0x20])
         status = self.cpu.status_as_byte()
         self.cpu.BRK()
         self.assertEqual(self.cpu.program_counter, 0x2000)
@@ -952,7 +951,7 @@ class TestSystemFunctionOperations(unittest.TestCase):
 class Test6502Bugs(unittest.TestCase):
     
     def setUp(self):
-        self.memory = Memory(0x10000)
+        self.memory = Memory()
         self.cpu = CPU(self.memory)
     
     def test_zero_page_x(self):
