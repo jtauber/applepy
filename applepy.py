@@ -238,28 +238,31 @@ class Display:
                     del pixels
 
 
-class RAM:
+class ROM:
     
     def __init__(self, start, size):
         self.start = start
         self.end = start + size - 1
-        self.__mem = [0x00] * size
+        self._mem = [0x00] * size
     
     def load(self, address, data):
         for offset, datum in enumerate(data):
-            self.__mem[address - self.start + offset] = datum
+            self._mem[address - self.start + offset] = datum
     
     def load_file(self, address, filename):
         with open(filename) as f:
             for offset, datum in enumerate(f.read()):
-                self.__mem[address - self.start + offset] = ord(datum)
+                self._mem[address - self.start + offset] = ord(datum)
     
     def read_byte(self, address):
         assert self.start <= address <= self.end
-        return self.__mem[address - self.start]
+        return self._mem[address - self.start]
+
+
+class RAM(ROM):
     
     def write_byte(self, address, value):
-        self.__mem[address] = value
+        self._mem[address] = value
 
 
 class SoftSwitches:
@@ -295,27 +298,6 @@ class SoftSwitches:
         else:
             pass # print "%04X" % address
         return 0x00
-
-
-class ROM:
-    
-    def __init__(self, start, size):
-        self.start = start
-        self.end = start + size - 1
-        self.__mem = [0x00] * size
-    
-    def load(self, address, data):
-        for offset, datum in enumerate(data):
-            self.__mem[address - self.start + offset] = datum
-    
-    def load_file(self, address, filename):
-        with open(filename) as f:
-            for offset, datum in enumerate(f.read()):
-                self.__mem[address - self.start + offset] = ord(datum)
-    
-    def read_byte(self, address):
-        assert self.start <= address <= self.end
-        return self.__mem[address - self.start]
 
 
 class Memory:
@@ -757,7 +739,7 @@ class CPU:
         self.ops[0xF9] = lambda: self.SBC(self.absolute_y_mode())
         self.ops[0xFD] = lambda: self.SBC(self.absolute_x_mode())
         self.ops[0xFE] = lambda: self.INC(self.absolute_x_mode())
-        
+    
     def reset(self):
         self.program_counter = self.memory.read_word(self.RESET_VECTOR)
     
