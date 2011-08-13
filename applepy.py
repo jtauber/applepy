@@ -175,7 +175,7 @@ class ROM:
 
 class Memory:
     
-    def __init__(self, display):
+    def __init__(self, display=None):
         self.display = display
         self.rom = ROM(0xD000, 0x3000)
         
@@ -209,7 +209,7 @@ class Memory:
     def write_byte(self, address, value):
         if address < 0xC000:
             self.ram.write_byte(address, value)
-        if 0x400 <= address < 0x800:
+        if 0x400 <= address < 0x800 and display:
             self.display.update(address, value)
 
 
