@@ -172,8 +172,8 @@ class Display:
             
         pixels = pygame.PixelArray(self.screen)
         for line in range(8):
-            b = self.characters[ch][line]
-            for i in range(5):
+            b = self.characters[ch][line] << 1
+            for i in range(7):
                 x = 2 * (column * 7 + (5 - i))
                 y = 2 * (row * 8 + line)
                 bit = (b >> i) % 2
