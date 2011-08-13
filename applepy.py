@@ -4,7 +4,7 @@
 
 
 import pygame
-
+import colorsys
 
 def signed(x):
     if x > 0x7F:
@@ -81,16 +81,79 @@ class Display:
         [0b00000, 0b01110, 0b10001, 0b00010, 0b00100, 0b00100, 0b00000, 0b00100]
     ]
     
+    lores_colours = [
+        (0, 0, 0), # black
+        (208, 0, 48), # magenta / dark red
+        (0, 0, 128), # dark blue
+        (255, 0, 255), # purple / violet
+        (0, 128, 0), # dark green
+        (128, 128, 128), # gray 1
+        (0, 0, 255), # medium blue / blue
+        (96, 160, 255), # light blue
+        (128, 80, 0), # brown / dark orange
+        (255, 128 ,0), # orange
+        (192, 192, 192), # gray 2
+        (255, 144, 128), # pink / light red
+        (0, 255, 0), # light green / green
+        (255, 255, 0), # yellow / light orange
+        (64, 255, 144), # aquamarine / light green
+        (255, 255, 255), # white
+    ]
+    
     def __init__(self):
         self.screen = pygame.display.set_mode((560, 432))
         pygame.display.set_caption("ApplePy")
     
+    def txtclr(self):
+        self.text = False
+    
+    def txtset(self):
+        self.text = True
+    
+    def mixclr(self):
+        self.mix = False
+    
+    def mixset(self):
+        self.mix = True
+    
+    def lowscr(self):
+        self.page = 1
+    
+    def hiscr(self):
+        self.page = 2
+    
+    def lores(self):
+        self.high_res = False
+    
+    def hires(self):
+        self.high_res = True
+    
     def update(self, address, value):
-        base = address - 0x400
+        if self.page == 1 and 0x400 <= address <= 0x7FF:
+            if self.text:
+                self.update_text(address - 0x400, value, False)
+            elif self.mix:
+                self.update_lores(address - 0x400, value, True)
+                self.update_text(address - 0x400, value, True)
+            else:
+                self.update_lores(address - 0x400, value, False)
+        if self.page == 2 and 0x800 <= address <= 0xBFF:
+            if self.text:
+                self.update_text(address - 0x800, value, False)
+            elif self.mix:
+                self.update_lores(address - 0x400, value, True)
+                self.update_text(address - 0x400, value, True)
+            else:
+                self.update_lores(address - 0x800, value, False)
+    
+    def update_text(self, base, value, mixed):
         hi, lo = divmod(base, 0x80)
         row_group, column  = divmod(lo, 0x28)
         row = hi + 8 * row_group
         
+        if mixed and row < 20:
+            return
+            
         # skip if writing to row group 3
         if row_group == 3:
             return
@@ -117,6 +180,28 @@ class Display:
                 pixels[x][y] = on if bit else off
                 pixels[x + 1][y] = on if bit else off
         del pixels
+    
+    def update_lores(self, base, value, mixed):
+        hi, lo = divmod(base, 0x80)
+        row_group, column  = divmod(lo, 0x28)
+        row = hi + 8 * row_group
+        
+        if mixed and row >= 20:
+            return
+        
+        lower, upper = divmod(value, 0x10)
+        
+        pixels = pygame.PixelArray(self.screen)
+        for dx in range(14):
+            for dy in range(9):
+                x = column * 14 + dx
+                y = row * 18 + dy
+                pixels[x][y] = self.lores_colours[upper]
+            for dy in range(9, 18):
+                x = column * 14 + dx
+                y = row * 18 + dy
+                pixels[x][y] = self.lores_colours[lower]
+        del pixels
 
 
 class RAM:
@@ -140,15 +225,36 @@ class RAM:
 
 class SoftSwitches:
     
-    def __init__(self):
+    def __init__(self, display):
         self.kbd = 0x00
+        self.display = display
     
     def read_byte(self, address):
         assert 0xC000 <= address <= 0xCFFF
         if address == 0xC000:
             return self.kbd
-        if address == 0xC010:
+        elif address == 0xC010:
             self.kbd = self.kbd & 0x7F
+        elif address == 0xC030:
+            pass # toggle speaker
+        elif address == 0xC050:
+            self.display.txtclr()
+        elif address == 0xC051:
+            self.display.txtset()
+        elif address == 0xC052:
+            self.display.mixclr()
+        elif address == 0xC053:
+            self.display.mixset()
+        elif address == 0xC054:
+            self.display.lowscr()
+        elif address == 0xC055:
+            self.display.hiscr()
+        elif address == 0xC056:
+            self.display.lores()
+        elif address == 0xC057:
+            self.display.hires()
+        else:
+            pass # print "%04X" % address
         return 0x00
 
 
@@ -183,7 +289,7 @@ class Memory:
         self.rom.load_file(0xD000, "A2ROM.BIN")
         
         self.ram = RAM(0x0000, 0xC000)
-        self.softswitches = SoftSwitches()
+        self.softswitches = SoftSwitches(display)
     
     def load(self, address, data):
         if address < 0xC000:
