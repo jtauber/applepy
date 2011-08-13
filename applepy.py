@@ -170,6 +170,8 @@ class Display:
                         bit = (b >> i) % 2
                         pixels[x][y] = on if bit else off
                         pixels[x + 1][y] = on if bit else off
+                        pixels[x][y + 1] = (0, 0, 0)
+                        pixels[x + 1][y + 1] = (0, 0, 0)
             else:
                 lower, upper = divmod(value, 0x10)
                 
