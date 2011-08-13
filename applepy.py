@@ -129,79 +129,59 @@ class Display:
         self.high_res = True
     
     def update(self, address, value):
-        if self.page == 1 and 0x400 <= address <= 0x7FF:
-            if self.text:
-                self.update_text(address - 0x400, value, False)
-            elif self.mix:
-                self.update_lores(address - 0x400, value, True)
-                self.update_text(address - 0x400, value, True)
-            else:
-                self.update_lores(address - 0x400, value, False)
-        if self.page == 2 and 0x800 <= address <= 0xBFF:
-            if self.text:
-                self.update_text(address - 0x800, value, False)
-            elif self.mix:
-                self.update_lores(address - 0x400, value, True)
-                self.update_text(address - 0x400, value, True)
-            else:
-                self.update_lores(address - 0x800, value, False)
-    
-    def update_text(self, base, value, mixed):
-        hi, lo = divmod(base, 0x80)
-        row_group, column  = divmod(lo, 0x28)
-        row = hi + 8 * row_group
-        
-        if mixed and row < 20:
+        if self.page == 1:
+            start = 0x400
+        elif self.page == 2:
+            start = 0x800
+        else:
             return
+        
+        if start <= address <= start + 0x3FF:
+            base = address - start
+            hi, lo = divmod(base, 0x80)
+            row_group, column  = divmod(lo, 0x28)
+            row = hi + 8 * row_group
             
-        # skip if writing to row group 3
-        if row_group == 3:
-            return
-        
-        mode, ch = divmod(value, 0x40)
-        
-        if mode == 0: # inverse
-            on = (0, 0, 0)
-            off = (0, 200, 0)
-        elif mode == 1: # flash
-            on = (0, 0, 0)
-            off = (0, 200, 0)
-        else: # normal
-            on = (0, 200, 0)
-            off = (0, 0, 0)
+            if row_group == 3:
+                return
             
-        pixels = pygame.PixelArray(self.screen)
-        for line in range(8):
-            b = self.characters[ch][line] << 1
-            for i in range(7):
-                x = 2 * (column * 7 + (5 - i))
-                y = 2 * (row * 8 + line)
-                bit = (b >> i) % 2
-                pixels[x][y] = on if bit else off
-                pixels[x + 1][y] = on if bit else off
-        del pixels
-    
-    def update_lores(self, base, value, mixed):
-        hi, lo = divmod(base, 0x80)
-        row_group, column  = divmod(lo, 0x28)
-        row = hi + 8 * row_group
-        
-        if mixed and row >= 20:
-            return
-        
-        lower, upper = divmod(value, 0x10)
-        
-        pixels = pygame.PixelArray(self.screen)
-        for dx in range(14):
-            for dy in range(8):
-                x = column * 14 + dx
-                y = row * 16 + dy
-                pixels[x][y] = self.lores_colours[upper]
-            for dy in range(8, 16):
-                x = column * 14 + dx
-                y = row * 16 + dy
-                pixels[x][y] = self.lores_colours[lower]
-        del pixels
+            pixels = pygame.PixelArray(self.screen)
+            
+            if self.text or not self.mix or not row < 20:
+                mode, ch = divmod(value, 0x40)
+                
+                if mode == 0: # inverse
+                    on = (0, 0, 0)
+                    off = (0, 200, 0)
+                elif mode == 1: # flash
+                    on = (0, 0, 0)
+                    off = (0, 200, 0)
+                else: # normal
+                    on = (0, 200, 0)
+                    off = (0, 0, 0)
+                
+                for line in range(8):
+                    b = self.characters[ch][line] << 1
+                    for i in range(7):
+                        x = 2 * (column * 7 + (5 - i))
+                        y = 2 * (row * 8 + line)
+                        bit = (b >> i) % 2
+                        pixels[x][y] = on if bit else off
+                        pixels[x + 1][y] = on if bit else off
+            else:
+                lower, upper = divmod(value, 0x10)
+                
+                for dx in range(14):
+                    for dy in range(8):
+                        x = column * 14 + dx
+                        y = row * 16 + dy
+                        pixels[x][y] = self.lores_colours[upper]
+                    for dy in range(8, 16):
+                        x = column * 14 + dx
+                        y = row * 16 + dy
+                        pixels[x][y] = self.lores_colours[lower]
+            
+            del pixels
 
 
 class RAM:
