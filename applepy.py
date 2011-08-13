@@ -249,6 +249,11 @@ class RAM:
         for offset, datum in enumerate(data):
             self.__mem[address - self.start + offset] = datum
     
+    def load_file(self, address, filename):
+        with open(filename) as f:
+            for offset, datum in enumerate(f.read()):
+                self.__mem[address - self.start + offset] = ord(datum)
+    
     def read_byte(self, address):
         assert self.start <= address <= self.end
         return self.__mem[address - self.start]
