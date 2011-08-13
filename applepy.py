@@ -336,9 +336,9 @@ class Memory:
     def write_byte(self, address, value):
         if address < 0xC000:
             self.ram.write_byte(address, value)
-        if 0x400 <= address < 0x800 and display:
+        if 0x400 <= address < 0x800 and self.display:
             self.display.update(address, value)
-        if 0x2000 <= address < 0x5FFF and display:
+        if 0x2000 <= address < 0x5FFF and self.display:
             self.display.update(address, value)
 
 
