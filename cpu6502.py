@@ -79,7 +79,10 @@ class Memory:
         op = chr(0) + chr(address >> 8) + chr(address & 0xFF) + chr(0)
         sys.stdout.write(op)
         sys.stdout.flush()
-        return ord(sys.stdin.read(1))
+        b = sys.stdin.read(1)
+        if len(b) == 0:
+            sys.exit(0)
+        return ord(b)
 
     def bus_write(self, address, value):
         op = chr(1) + chr(address >> 8) + chr(address & 0xFF) + chr(value)
