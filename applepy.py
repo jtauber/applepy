@@ -126,6 +126,10 @@ class RAM:
         self.end = start + size - 1
         self.__mem = [0x00] * size
     
+    def load(self, address, data):
+        for offset, datum in enumerate(data):
+            self.__mem[address - self.start + offset] = datum
+    
     def read_byte(self, address):
         assert self.start <= address <= self.end
         return self.__mem[address - self.start]
@@ -180,7 +184,11 @@ class Memory:
         
         self.ram = RAM(0x0000, 0xC000)
         self.softswitches = SoftSwitches()
-        
+    
+    def load(self, address, data):
+        if address < 0xC000:
+            self.ram.load(address, data)
+    
     def read_byte(self, address):
         if address < 0xC000:
             return self.ram.read_byte(address)
