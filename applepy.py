@@ -133,14 +133,16 @@ class Display:
     
     def update(self, address, value):
         if self.page == 1:
-            start = 0x400
+            start_text = 0x400
+            start_hires = 0x2000
         elif self.page == 2:
-            start = 0x800
+            start_text = 0x800
+            start_hires = 0x4000
         else:
             return
         
-        if start <= address <= start + 0x3FF:
-            base = address - start
+        if start_text <= address <= start_text + 0x3FF:
+            base = address - start_text
             hi, lo = divmod(base, 0x80)
             row_group, column  = divmod(lo, 0x28)
             row = hi + 8 * row_group
@@ -173,19 +175,43 @@ class Display:
                         pixels[x][y + 1] = (0, 0, 0)
                         pixels[x + 1][y + 1] = (0, 0, 0)
             else:
-                lower, upper = divmod(value, 0x10)
-                
-                for dx in range(14):
-                    for dy in range(8):
-                        x = column * 14 + dx
-                        y = row * 16 + dy
-                        pixels[x][y] = self.lores_colours[upper]
-                    for dy in range(8, 16):
-                        x = column * 14 + dx
-                        y = row * 16 + dy
-                        pixels[x][y] = self.lores_colours[lower]
-            
+                if not self.high_res:
+                    lower, upper = divmod(value, 0x10)
+                    
+                    for dx in range(14):
+                        for dy in range(8):
+                            x = column * 14 + dx
+                            y = row * 16 + dy
+                            pixels[x][y] = self.lores_colours[upper]
+                        for dy in range(8, 16):
+                            x = column * 14 + dx
+                            y = row * 16 + dy
+                            pixels[x][y] = self.lores_colours[lower]
             del pixels
+            
+        elif start_hires <= address <= start_hires + 0x1FFF:
+            if self.high_res:
+                base = address - start_hires
+                row8, b = divmod(base, 0x400)
+                hi, lo = divmod(b, 0x80)
+                row_group, column  = divmod(lo, 0x28)
+                row = 8 * (hi + 8 * row_group) + row8
+                
+                if self.mix and row >= 160:
+                    return
+                
+                if row < 192 and column < 40:
+                    
+                    pixels = pygame.PixelArray(self.screen)
+                    for b in range(7):
+                        c = 0xFFFFFF if (value & (1 << b)) else 0
+                        x = 2 * (column * 7 + b)
+                        y = 2 * row
+                        pixels[x][y] = c
+                        pixels[x + 1][y] = c
+                        pixels[x][y + 1] = c
+                        pixels[x + 1][y + 1] = c
+                    del pixels
 
 
 class RAM:
@@ -300,6 +326,8 @@ class Memory:
         if address < 0xC000:
             self.ram.write_byte(address, value)
         if 0x400 <= address < 0x800 and display:
+            self.display.update(address, value)
+        if 0x2000 <= address < 0x5FFF and display:
             self.display.update(address, value)
 
 
