@@ -104,7 +104,7 @@ class Display:
         self.screen = pygame.display.set_mode((560, 384))
         pygame.display.set_caption("ApplePy")
         self.mix = False
-
+        
         self.chargen = []
         for c in self.characters:
             chars = [[pygame.Surface((14, 16)), pygame.Surface((14, 16))],
@@ -206,7 +206,7 @@ class Display:
                     
                     pixels = pygame.PixelArray(self.screen)
                     msb = value // 0x80
-
+                    
                     for b in range(7):
                         c = value & (1 << b)
                         xx = (column * 7 + b)
@@ -231,10 +231,10 @@ class Display:
                                 # violet
                                 pixels[x][y] = (255, 0, 255) if c else (0, 0, 0)
                                 pixels[x + 1][y] = (0, 0, 0)
-
+                                
                         pixels[x][y + 1] = (0, 0, 0)
                         pixels[x + 1][y + 1] = (0, 0, 0)
-                                
+                        
                     del pixels
 
 
