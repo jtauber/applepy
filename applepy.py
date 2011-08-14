@@ -220,7 +220,7 @@ class Display:
                                 pixels[x + 1][y] = (255, 192, 0) if c else (0, 0, 0)
                             else:
                                 # blue
-                                pixels[x][y] = (0, 128, 224) if c else (0, 0, 0)
+                                pixels[x][y] = (0, 192, 255) if c else (0, 0, 0)
                                 pixels[x + 1][y] = (0, 0, 0)
                         else:
                             if xx % 2:
