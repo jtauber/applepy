@@ -7,6 +7,8 @@ import numpy
 import pygame
 import colorsys
 import sys
+import time
+
 
 def signed(x):
     if x > 0x7F:
@@ -106,6 +108,9 @@ class Display:
         self.screen = pygame.display.set_mode((560, 384))
         pygame.display.set_caption("ApplePy")
         self.mix = False
+        self.flash_time = time.time()
+        self.flash_on = False
+        self.flash_chars = [[0] * 0x400] * 2
         
         self.chargen = []
         for c in self.characters:
@@ -164,6 +169,7 @@ class Display:
         
         if start_text <= address <= start_text + 0x3FF:
             base = address - start_text
+            self.flash_chars[self.page - 1][base] = value
             hi, lo = divmod(base, 0x80)
             row_group, column  = divmod(lo, 0x28)
             row = hi + 8 * row_group
@@ -174,7 +180,12 @@ class Display:
             if self.text or not self.mix or not row < 20:
                 mode, ch = divmod(value, 0x40)
                 
-                inv = mode in (0, 1)
+                if mode == 0:
+                    inv = True
+                elif mode == 1:
+                    inv = self.flash_on
+                else:
+                    inv = False
                 
                 self.screen.blit(self.chargen[ch][self.colour][inv], (2 * (column * 7), 2 * (row * 8)))
             else:
@@ -238,6 +249,14 @@ class Display:
                         pixels[x + 1][y + 1] = (0, 0, 0)
                         
                     del pixels
+
+    def flash(self):
+        if time.time() - self.flash_time >= 0.5:
+            self.flash_on = not self.flash_on
+            for offset, char in enumerate(self.flash_chars[self.page - 1]):
+                if (char & 0xC0) == 0x40:
+                    self.update(0x400 + offset, char)
+            self.flash_time = time.time()
 
 
 class Speaker:
@@ -806,14 +825,19 @@ class CPU:
                     quit = True
                 
                 if event.type == pygame.KEYDOWN:
-                    if event.unicode:
-                        key = ord(event.unicode)
+                    key = ord(event.unicode) if event.unicode else 0
+                    if event.key == pygame.K_LEFT:
+                        key = 0x08
+                    if event.key == pygame.K_RIGHT:
+                        key = 0x15
+                    if key:
                         if key == 0x7F:
                             key = 0x08
                         self.memory.softswitches.kbd = 0x80 + key
             
             update_cycle += 1
             if update_cycle >= 1024:
+                self.memory.display.flash()
                 pygame.display.flip()
                 self.memory.update(self.cycles)
                 update_cycle = 0
