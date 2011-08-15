@@ -261,6 +261,12 @@ class Speaker:
         self.last_toggle = None
         self.buffer = []
         self.polarity = False
+    
+    def play(self):
+        sample_array = numpy.array(self.buffer)
+        sound = pygame.sndarray.make_sound(sample_array)
+        sound.play()
+        self.reset()
 
 
 class ROM:
@@ -371,10 +377,7 @@ class Memory:
     
     def update(self, cycle):
         if self.speaker.buffer and (cycle - self.speaker.last_toggle) > self.speaker.CHECK_INTERVAL:
-            sample_array = numpy.array(self.speaker.buffer)
-            sound = pygame.sndarray.make_sound(sample_array)
-            sound.play()
-            self.speaker.reset()
+            self.speaker.play()
 
 
 class Disassemble:
