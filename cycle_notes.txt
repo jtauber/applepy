@@ -91,7 +91,7 @@ Class IV
 (followed by BCC, BCS, BEQ, BMI, BNE, BPL, BVC, BVS)
 
 branch not taken    2
-branch taken        3 (+1 is page crossed)
+branch taken        3 (+1 if page crossed)
 
 
 Class V
@@ -106,3 +106,33 @@ Class VI
 
 absolute        6
 
+
+
+This seems a possible implementation (not yet considering page boundaries):
+
+1. all instructions start with 2
+2. absolute (including absolute indexed) adds 2
+3. absolute indexed adds an additional 1 *if* instruction is of RMW type
+4. zero page (including zero page indexed) adds 1
+5. zero page indexed adds an addition 1
+6. indirect (JMP) adds 4
+7. indirect x adds 4
+8. indirect y adds 3 plus an additional 1 *if* instruction is of RMW type
+9. ASL, LSR, ROL, ROR add 2 cycles if not implied
+10. JMP subtracts 1 cycle
+11. JSR adds 2
+12. RTS adds 4
+13. branches add 1 if taken
+14. DEC and INC add 2 cycles
+15. PHA and PHP add 1 cycle
+16. PLA and PLP add 2 cycles
+17. BRK adds 5 cycles
+18. RTI adds 4 cycles
+
+RMW instructions are the absolute,x of ASL, DEC, INC, LSR ROL, ROR and STA
+as well as indirect,y and absolute,y of STA
+
+
+It may be possible to simplify even further given the particular functions
+some of these share in command (where the cycle change could be placed
+instead)
