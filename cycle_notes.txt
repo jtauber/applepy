@@ -14,11 +14,15 @@ document some of the "why".
 What follows is an attempt to "find the patterns" in the cycle times (as
 given on http://www.6502.org/tutorials/6502opcodes.html )
 
-There are 12 classes of instructions when it comes to cycle times:
+NOTE: there appears to be an error in AND and ORA zero page timings on that
+webpage given above. I've now corrected this below.
+
+There are 11 classes of instructions when it comes to cycle times:
 
 
 Class Ia
-(followed by ADC, BIT, CMP, CPX, CPY, EOR, LDA, LDX, LDY, SBC, STX, STY)
+(followed by ADC, AND, BIT, CMP, CPX, CPY, EOR, LDA, LDX, LDY, ORA, SBC, STX,
+STY)
 
 immediate       2
 zero page       3
@@ -52,23 +56,6 @@ page cross even if there isn't.
 Question 1: why is this?
 
 
-Class Ic
-(followed by AND, ORA)
-
-immediate       2
-zero page       2
-zero page, x    3
-absolute        4
-absolute, x     4 (+1 if page crossed)
-absolute, y     4 (+1 if page crossed)
-indirect, x     6
-indirect, y     5 (+1 if page crossed)
-
-Note 3: just like class Ia except the zero page are a cycle faster
-
-Question 2: why is this? is it a bug on the webpage?
-
-
 Class II
 (followed by ASL, DEC, INC, LSR, ROL, ROR)
 
@@ -80,7 +67,7 @@ absolute, x     7
 
 Note 4: looks like class Ib + 2 in the non-implied cases
 
-Question 3: why does absolute, x not have a page crossing addition? same
+Question 2: why does absolute, x not have a page crossing addition? same
 reason as for Ib?
 
 
