@@ -50,8 +50,10 @@ zero page, x    6
 absolute        6
 absolute, x     7
 
-Note 3: looks like class I +2 (with the absolute, x +1 even if not page
-crossing)
+Note 3: these take 2 cycles longer than Class I because they involve a
+read-modify-write. Because the absolute, x is a write to an indexed
+non-zero-page memory location, there is an additional +1 even if not page
+crossing (see Note 2)
 
 
 Class IIIa
