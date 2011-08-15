@@ -261,7 +261,7 @@ class Display:
 
 class Speaker:
     
-    CPU_CYCLES_PER_SAMPLE = 70
+    CPU_CYCLES_PER_SAMPLE = 60
     CHECK_INTERVAL = 1000
     
     def __init__(self):
@@ -273,7 +273,7 @@ class Speaker:
         if self.last_toggle is not None:
             l = (cycle - self.last_toggle) / Speaker.CPU_CYCLES_PER_SAMPLE
             self.buffer.extend([0, 0.8] if self.polarity else [0, -0.8])
-            self.buffer.extend(l * [0.5] if self.polarity else [-0.5])
+            self.buffer.extend((l - 2) * [0.5] if self.polarity else [-0.5])
             self.polarity = not self.polarity
         self.last_toggle = cycle
     
