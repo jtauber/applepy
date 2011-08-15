@@ -5,7 +5,6 @@
 
 import numpy
 import pygame
-import colorsys
 import sys
 import time
 
