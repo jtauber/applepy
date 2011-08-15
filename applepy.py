@@ -808,6 +808,9 @@ class CPU:
     
     def run(self):
         update_cycle = 0
+        last_update_cycle_time = time.time()
+        last_update_cycle_cycles = self.cycles
+        
         quit = False
         while not quit:
             self.cycles += 2 # all instructions take this as a minimum
@@ -842,6 +845,9 @@ class CPU:
                 pygame.display.flip()
                 self.memory.update(self.cycles)
                 update_cycle = 0
+                print (self.cycles - last_update_cycle_cycles) / (time.time() - last_update_cycle_time)
+                last_update_cycle_time = time.time()
+                last_update_cycle_cycles = self.cycles
     
     def test_run(self, start, end):
         self.program_counter = start
