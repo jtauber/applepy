@@ -3,6 +3,7 @@
 # originally written 2001, updated 2011
 
 
+import numpy
 import pygame
 import colorsys
 
@@ -238,6 +239,30 @@ class Display:
                     del pixels
 
 
+class Speaker:
+    
+    CPU_CYCLES_PER_SAMPLE = 70
+    CHECK_INTERVAL = 1000
+    
+    def __init__(self):
+        pygame.mixer.pre_init(44100, -16, 1)
+        pygame.init()
+        self.reset()
+    
+    def toggle(self, cycle):
+        if self.last_toggle is not None:
+            l = (cycle - self.last_toggle) / Speaker.CPU_CYCLES_PER_SAMPLE
+            self.buffer.extend([0, 0.8] if self.polarity else [0, -0.8])
+            self.buffer.extend(l * [0.5] if self.polarity else [-0.5])
+            self.polarity = not self.polarity
+        self.last_toggle = cycle
+    
+    def reset(self):
+        self.last_toggle = None
+        self.buffer = []
+        self.polarity = False
+
+
 class ROM:
     
     def __init__(self, start, size):
@@ -267,9 +292,10 @@ class RAM(ROM):
 
 class SoftSwitches:
     
-    def __init__(self, display):
+    def __init__(self, display, speaker):
         self.kbd = 0x00
         self.display = display
+        self.speaker = speaker
     
     def read_byte(self, cycle, address):
         assert 0xC000 <= address <= 0xCFFF
@@ -278,7 +304,8 @@ class SoftSwitches:
         elif address == 0xC010:
             self.kbd = self.kbd & 0x7F
         elif address == 0xC030:
-            pass # toggle speaker
+            if self.speaker:
+                self.speaker.toggle(cycle)
         elif address == 0xC050:
             self.display.txtclr()
         elif address == 0xC051:
@@ -302,15 +329,16 @@ class SoftSwitches:
 
 class Memory:
     
-    def __init__(self, display=None):
+    def __init__(self, display=None, speaker=None):
         self.display = display
+        self.speaker = speaker
         self.rom = ROM(0xD000, 0x3000)
         
         # available from http://www.easy68k.com/paulrsm/6502/index.html
         self.rom.load_file(0xD000, "A2ROM.BIN")
         
         self.ram = RAM(0x0000, 0xC000)
-        self.softswitches = SoftSwitches(display)
+        self.softswitches = SoftSwitches(display, speaker)
     
     def load(self, address, data):
         if address < 0xC000:
@@ -340,6 +368,13 @@ class Memory:
             self.display.update(address, value)
         if 0x2000 <= address < 0x5FFF and self.display:
             self.display.update(address, value)
+    
+    def update(self, cycle):
+        if self.speaker.buffer and (cycle - self.speaker.last_toggle) > self.speaker.CHECK_INTERVAL:
+            sample_array = numpy.array(self.speaker.buffer)
+            sound = pygame.sndarray.make_sound(sample_array)
+            sound.play()
+            self.speaker.reset()
 
 
 class Disassemble:
@@ -774,6 +809,7 @@ class CPU:
             update_cycle += 1
             if update_cycle >= 1024:
                 pygame.display.flip()
+                self.memory.update(self.cycles)
                 update_cycle = 0
     
     def test_run(self, start, end):
@@ -1220,7 +1256,8 @@ class CPU:
 
 if __name__ == "__main__":
     display = Display()
-    mem = Memory(display)
+    speaker = Speaker()
+    mem = Memory(display, speaker)
     
     cpu = CPU(mem)
     cpu.run()
