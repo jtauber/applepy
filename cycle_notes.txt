@@ -1,0 +1,137 @@
+There are two ways we could represent cycle information:
+
+1. just have an array of cycles for each opcode + the adjustment for
+   page boundary crossing (which seems opcode-specific, oddly)
+
+2. add cycles in individual methods like those accessing memory and the 
+   operations themselves, to be model *why* something takes the cycles it
+   does.
+
+I prefer 2 on the grounds of it being more instructive but it assumes that
+the way we do things is closely aligned to the way the 6502 is doing them
+internally. Even if we end up having to do 1, I'd love to understand and
+document some of the "why".
+
+What follows is an attempt to "find the patterns" in the cycle times (as
+given on http://www.6502.org/tutorials/6502opcodes.html )
+
+There are 12 classes of instructions when it comes to cycle times:
+
+
+Class Ia
+(followed by ADC, BIT, CMP, CPX, CPY, EOR, LDA, LDX, LDY, SBC, STX, STY)
+
+immediate       2
+zero page       3
+zero page, x    4
+zero page, y    4
+absolute        4
+absolute, x     4 (+1 if page crossed)
+absolute, y     4 (+1 if page crossed)
+indirect, x     6
+indirect, y     5 (+1 if page crossed)
+
+Note 1: the zero page indexed and x-index indirect don't have the page cross
+addition because they wrap.
+
+
+Class Ib
+(followed by STA)
+
+zero page       3
+zero page, x    4
+zero page, y    4
+absolute        4
+absolute, x     5
+absolute, y     5
+indirect, x     6
+indirect, y     6
+
+Note 2: just like Class Ia BUT takes the cycles it would take if there's a
+page cross even if there isn't.
+
+Question 1: why is this?
+
+
+Class Ic
+(followed by AND, ORA)
+
+immediate       2
+zero page       2
+zero page, x    3
+absolute        4
+absolute, x     4 (+1 if page crossed)
+absolute, y     4 (+1 if page crossed)
+indirect, x     6
+indirect, y     5 (+1 if page crossed)
+
+Note 3: just like class Ia except the zero page are a cycle faster
+
+Question 2: why is this? is it a bug on the webpage?
+
+
+Class II
+(followed by ASL, DEC, INC, LSR, ROL, ROR)
+
+implied         2
+zero page       5
+zero page, x    6
+absolute        6
+absolute, x     7
+
+Note 4: looks like class Ib + 2 in the non-implied cases
+
+Question 3: why does absolute, x not have a page crossing addition? same
+reason as for Ib?
+
+
+Class IIIa
+(followed by CLC, CLD, CLI, CLV, DEX, DEY, INX, INY, NOP, SEC, SED, SEI, TAX,
+TAY, TSX, TXA, TXS, TYA)
+
+implied 2
+
+
+Class IIIb
+(followed by PHA, PHP)
+
+implied 3
+
+
+Class IIIc
+(followed by PLA, PLP)
+
+implied 4
+
+
+Class IIId
+(followed by RTI, RTS)
+
+implied 6
+
+
+Class IIIe
+(followed by BRK)
+
+implied 7
+
+
+Class IV
+(followed by BCC, BCS, BEQ, BMI, BNE, BPL, BVC, BVS)
+
+branch not taken    2
+branch taken        3 (+1 is page crossed)
+
+
+Class V
+(followed by JMP)
+
+absolute        3
+indirect        5
+
+
+Class VI
+(followed by JSR)
+
+absolute 6
+
