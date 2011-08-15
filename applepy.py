@@ -271,7 +271,7 @@ class SoftSwitches:
         self.kbd = 0x00
         self.display = display
     
-    def read_byte(self, address):
+    def read_byte(self, cycle, address):
         assert 0xC000 <= address <= 0xCFFF
         if address == 0xC000:
             return self.kbd
@@ -316,22 +316,22 @@ class Memory:
         if address < 0xC000:
             self.ram.load(address, data)
     
-    def read_byte(self, address):
+    def read_byte(self, cycle, address):
         if address < 0xC000:
             return self.ram.read_byte(address)
         elif address < 0xD000:
-            return self.softswitches.read_byte(address)
+            return self.softswitches.read_byte(cycle, address)
         else:
             return self.rom.read_byte(address)
     
-    def read_word(self, address):
-        return self.read_byte(address) + (self.read_byte(address + 1) << 8)
+    def read_word(self, cycle, address):
+        return self.read_byte(cycle, address) + (self.read_byte(cycle + 1, address + 1) << 8)
     
-    def read_word_bug(self, address):
+    def read_word_bug(self, cycle, address):
         if address % 0x100 == 0xFF:
-            return self.read_byte(address) + (self.read_byte(address & 0xFF00) << 8)
+            return self.read_byte(cycle, address) + (self.read_byte(cycle + 1, address & 0xFF00) << 8)
         else:
-            return self.read_word(address)
+            return self.read_word(cycle, address)
     
     def write_byte(self, address, value):
         if address < 0xC000:
@@ -743,7 +743,7 @@ class CPU:
         self.ops[0xFE] = lambda: self.INC(self.absolute_x_mode(rmw=True))
     
     def reset(self):
-        self.program_counter = self.memory.read_word(self.RESET_VECTOR)
+        self.program_counter = self.read_word(self.RESET_VECTOR)
     
     def run(self):
         update_cycle = 0
@@ -799,11 +799,20 @@ class CPU:
         self.program_counter += inc
         return pc
     
+    def read_byte(self, address):
+        return self.memory.read_byte(self.cycles, address)
+    
+    def read_word(self, address):
+        return self.memory.read_word(self.cycles, address)
+    
+    def read_word_bug(self, address):
+        return self.memory.read_word_bug(self.cycles, address)
+    
     def read_pc_byte(self):
-        return self.memory.read_byte(self.get_pc())
+        return self.read_byte(self.get_pc())
     
     def read_pc_word(self):
-        return self.memory.read_word(self.get_pc(2))
+        return self.read_word(self.get_pc(2))
     
     ####
     
@@ -827,7 +836,7 @@ class CPU:
     
     def pull_byte(self):
         self.stack_pointer = (self.stack_pointer + 1) % 0x100
-        return self.memory.read_byte(self.STACK_PAGE + self.stack_pointer)
+        return self.read_byte(self.STACK_PAGE + self.stack_pointer)
     
     def push_word(self, word):
         hi, lo = divmod(word, 0x100)
@@ -837,7 +846,7 @@ class CPU:
     def pull_word(self):
         s = self.STACK_PAGE + self.stack_pointer + 1
         self.stack_pointer += 2
-        return self.memory.read_word(s)
+        return self.read_word(s)
     
     ####
     
@@ -872,22 +881,22 @@ class CPU:
     
     def indirect_mode(self):
         self.cycles += 2
-        return self.memory.read_word_bug(self.absolute_mode())
+        return self.read_word_bug(self.absolute_mode())
     
     def indirect_x_mode(self):
         self.cycles += 4
-        return self.memory.read_word_bug((self.read_pc_byte() + self.x_index) % 0x100)
+        return self.read_word_bug((self.read_pc_byte() + self.x_index) % 0x100)
     
     def indirect_y_mode(self, rmw=False):
         if rmw:
             self.cycles += 4
         else:
             self.cycles += 3
-        return self.memory.read_word_bug(self.read_pc_byte()) + self.y_index
+        return self.read_word_bug(self.read_pc_byte()) + self.y_index
     
     def relative_mode(self):
         pc = self.get_pc()
-        return pc + 1 + signed(self.memory.read_byte(pc))
+        return pc + 1 + signed(self.read_byte(pc))
     
     ####
     
@@ -906,13 +915,13 @@ class CPU:
     # LOAD / STORE
     
     def LDA(self, operand_address):
-        self.accumulator = self.update_nz(self.memory.read_byte(operand_address))
+        self.accumulator = self.update_nz(self.read_byte(operand_address))
     
     def LDX(self, operand_address):
-        self.x_index = self.update_nz(self.memory.read_byte(operand_address))
+        self.x_index = self.update_nz(self.read_byte(operand_address))
     
     def LDY(self, operand_address):
-        self.y_index = self.update_nz(self.memory.read_byte(operand_address))
+        self.y_index = self.update_nz(self.read_byte(operand_address))
     
     def STA(self, operand_address):
         self.memory.write_byte(operand_address, self.accumulator)
@@ -950,7 +959,7 @@ class CPU:
             self.accumulator = self.update_nzc(self.accumulator << 1)
         else:
             self.cycles += 2
-            self.memory.write_byte(operand_address, self.update_nzc(self.memory.read_byte(operand_address) << 1))
+            self.memory.write_byte(operand_address, self.update_nzc(self.read_byte(operand_address) << 1))
     
     def ROL(self, operand_address=None):
         if operand_address is None:
@@ -960,7 +969,7 @@ class CPU:
             self.accumulator = self.update_nzc(a)
         else:
             self.cycles += 2
-            m = self.memory.read_byte(operand_address) << 1
+            m = self.read_byte(operand_address) << 1
             if self.carry_flag:
                 m = m | 0x01
             self.memory.write_byte(operand_address, self.update_nzc(m))
@@ -973,7 +982,7 @@ class CPU:
             self.accumulator = self.update_nz(self.accumulator >> 1)
         else:
             self.cycles += 2
-            m = self.memory.read_byte(operand_address)
+            m = self.read_byte(operand_address)
             if self.carry_flag:
                 m = m | 0x100
             self.carry_flag = m % 2
@@ -985,8 +994,8 @@ class CPU:
             self.accumulator = self.update_nz(self.accumulator >> 1)
         else:
             self.cycles += 2
-            self.carry_flag = self.memory.read_byte(operand_address) % 2
-            self.memory.write_byte(operand_address,  self.update_nz(self.memory.read_byte(operand_address) >> 1))
+            self.carry_flag = self.read_byte(operand_address) % 2
+            self.memory.write_byte(operand_address,  self.update_nz(self.read_byte(operand_address) >> 1))
     
     # JUMPS / RETURNS
     
@@ -1072,7 +1081,7 @@ class CPU:
     
     def DEC(self, operand_address):
         self.cycles += 2
-        self.memory.write_byte(operand_address, self.update_nz(self.memory.read_byte(operand_address) - 1))
+        self.memory.write_byte(operand_address, self.update_nz(self.read_byte(operand_address) - 1))
     
     def DEX(self):
         self.x_index = self.update_nz(self.x_index - 1)
@@ -1082,7 +1091,7 @@ class CPU:
     
     def INC(self, operand_address):
         self.cycles += 2
-        self.memory.write_byte(operand_address, self.update_nz(self.memory.read_byte(operand_address) + 1))
+        self.memory.write_byte(operand_address, self.update_nz(self.read_byte(operand_address) + 1))
     
     def INX(self):
         self.x_index = self.update_nz(self.x_index + 1)
@@ -1111,13 +1120,13 @@ class CPU:
     # LOGIC
     
     def AND(self, operand_address):
-        self.accumulator = self.update_nz(self.accumulator & self.memory.read_byte(operand_address))
+        self.accumulator = self.update_nz(self.accumulator & self.read_byte(operand_address))
     
     def ORA(self, operand_address):
-        self.accumulator = self.update_nz(self.accumulator | self.memory.read_byte(operand_address))
+        self.accumulator = self.update_nz(self.accumulator | self.read_byte(operand_address))
     
     def EOR(self, operand_address):
-        self.accumulator = self.update_nz(self.accumulator ^ self.memory.read_byte(operand_address))
+        self.accumulator = self.update_nz(self.accumulator ^ self.read_byte(operand_address))
     
     # ARITHMETIC
     
@@ -1127,7 +1136,7 @@ class CPU:
         
         a2 = self.accumulator
         a1 = signed(a2)
-        m2 = self.memory.read_byte(operand_address)
+        m2 = self.read_byte(operand_address)
         m1 = signed(m2)
         
         # twos complement addition
@@ -1147,7 +1156,7 @@ class CPU:
         
         a2 = self.accumulator
         a1 = signed(a2)
-        m2 = self.memory.read_byte(operand_address)
+        m2 = self.read_byte(operand_address)
         m1 = signed(m2)
         
         # twos complement subtraction
@@ -1165,7 +1174,7 @@ class CPU:
     # BIT
     
     def BIT(self, operand_address):
-        value = self.memory.read_byte(operand_address)
+        value = self.read_byte(operand_address)
         self.sign_flag = ((value >> 7) % 2) # bit 7
         self.overflow_flag = ((value >> 6) % 2) # bit 6
         self.zero_flag = [0, 1][((self.accumulator & value) == 0)]
@@ -1173,17 +1182,17 @@ class CPU:
     # COMPARISON
     
     def CMP(self, operand_address):
-        result = self.accumulator - self.memory.read_byte(operand_address)
+        result = self.accumulator - self.read_byte(operand_address)
         self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
     
     def CPX(self, operand_address):
-        result = self.x_index - self.memory.read_byte(operand_address)
+        result = self.x_index - self.read_byte(operand_address)
         self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
     
     def CPY(self, operand_address):
-        result = self.y_index - self.memory.read_byte(operand_address)
+        result = self.y_index - self.read_byte(operand_address)
         self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
     
@@ -1196,7 +1205,7 @@ class CPU:
         self.cycles += 5
         self.push_word(self.program_counter + 1)
         self.push_byte(self.status_as_byte())
-        self.program_counter = self.memory.read_word(0xFFFE)
+        self.program_counter = self.read_word(0xFFFE)
         self.break_flag = 1
     
     def RTI(self):
