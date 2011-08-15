@@ -1,0 +1,138 @@
+There are two ways we could represent cycle information:
+
+1. just have an array of cycles for each opcode + the adjustment for
+   page boundary crossing (which seems opcode-specific, oddly)
+
+2. add cycles in individual methods like those accessing memory and the 
+   operations themselves, to model *why* something takes the cycles it does.
+
+I prefer 2 on the grounds of it being more instructive but it assumes that
+the way we do things is closely aligned to the way the 6502 is doing them
+internally. Even if we end up having to do 1, I'd love to understand and
+document some of the "why".
+
+What follows is an attempt to "find the patterns" in the cycle times (as
+given on http://www.6502.org/tutorials/6502opcodes.html )
+
+NOTE: there appears to be an error in AND and ORA zero page timings on that
+webpage given above. I've now corrected this below.
+
+There are 10 classes of instructions when it comes to cycle times:
+
+
+Class I
+(followed by ADC, AND, BIT, CMP, CPX, CPY, EOR, LDA, LDX, LDY, ORA, SBC, STA,
+STX, STY)
+
+immediate       2
+zero page       3
+zero page, x    4
+zero page, y    4
+absolute        4
+absolute, x     4 (+1 if page crossed or writing)
+absolute, y     4 (+1 if page crossed or writing)
+indirect, x     6
+indirect, y     5 (+1 if page crossed or writing)
+
+Note 1: the zero page indexed and x-index indirect don't have the page cross
+addition because they wrap.
+
+Note 2: writes to indexed non-zero-page memory (e.g. STA) have the +1 even
+if not page crossing.
+
+
+Class II
+(followed by ASL, DEC, INC, LSR, ROL, ROR)
+
+implied         2
+zero page       5
+zero page, x    6
+absolute        6
+absolute, x     7
+
+Note 3: these take 2 cycles longer than Class I because they involve a
+read-modify-write. Because the absolute, x is a write to an indexed
+non-zero-page memory location, there is an additional +1 even if not page
+crossing (see Note 2)
+
+
+Class IIIa
+(followed by CLC, CLD, CLI, CLV, DEX, DEY, INX, INY, NOP, SEC, SED, SEI, TAX,
+TAY, TSX, TXA, TXS, TYA)
+
+implied         2
+
+
+Class IIIb
+(followed by PHA, PHP)
+
+implied         3
+
+
+Class IIIc
+(followed by PLA, PLP)
+
+implied         4
+
+
+Class IIId
+(followed by RTI, RTS)
+
+implied         6
+
+
+Class IIIe
+(followed by BRK)
+
+implied         7
+
+
+Class IV
+(followed by BCC, BCS, BEQ, BMI, BNE, BPL, BVC, BVS)
+
+branch not taken    2
+branch taken        3 (+1 if page crossed)
+
+
+Class V
+(followed by JMP)
+
+absolute        3
+indirect        5
+
+
+Class VI
+(followed by JSR)
+
+absolute        6
+
+
+
+This seems a possible implementation (not yet considering page boundaries):
+
+1. all instructions start with 2
+2. absolute (including absolute indexed) adds 2
+3. absolute indexed adds an additional 1 *if* instruction is of RMW type
+4. zero page (including zero page indexed) adds 1
+5. zero page indexed adds an addition 1
+6. indirect (JMP) adds 4
+7. indirect x adds 4
+8. indirect y adds 3 plus an additional 1 *if* instruction is of RMW type
+9. ASL, LSR, ROL, ROR add 2 cycles if not implied
+10. JMP subtracts 1 cycle
+11. JSR adds 2
+12. RTS adds 4
+13. branches add 1 if taken
+14. DEC and INC add 2 cycles
+15. PHA and PHP add 1 cycle
+16. PLA and PLP add 2 cycles
+17. BRK adds 5 cycles
+18. RTI adds 4 cycles
+
+RMW instructions are the absolute,x of ASL, DEC, INC, LSR ROL, ROR and STA
+as well as indirect,y and absolute,y of STA
+
+
+It may be possible to simplify even further given the particular functions
+some of these share in command (where the cycle change could be placed
+instead)
