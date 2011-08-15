@@ -355,17 +355,19 @@ class SoftSwitches:
 
 class Memory:
     
-    def __init__(self, options, display=None, speaker=None):
+    def __init__(self, options=None, display=None, speaker=None):
         self.display = display
         self.speaker = speaker
         self.rom = ROM(0xD000, 0x3000)
         
-        # available from http://www.easy68k.com/paulrsm/6502/index.html
-        self.rom.load_file(0xD000, options.rom)
+        if options:
+            self.rom.load_file(0xD000, options.rom)
         
         self.ram = RAM(0x0000, 0xC000)
-        if options.ram:
+        
+        if options and options.ram:
             self.ram.load_file(0x0000, options.ram)
+        
         self.softswitches = SoftSwitches(display, speaker)
     
     def load(self, address, data):
