@@ -803,8 +803,12 @@ class CPU:
                     quit = True
                 
                 if event.type == pygame.KEYDOWN:
-                    if event.unicode:
-                        key = ord(event.unicode)
+                    key = ord(event.unicode) if event.unicode else 0
+                    if event.key == pygame.K_LEFT:
+                        key = 0x08
+                    if event.key == pygame.K_RIGHT:
+                        key = 0x15
+                    if key:
                         if key == 0x7F:
                             key = 0x08
                         self.memory.softswitches.kbd = 0x80 + key
