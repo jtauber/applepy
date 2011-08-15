@@ -6,6 +6,7 @@
 import numpy
 import pygame
 import colorsys
+import sys
 
 def signed(x):
     if x > 0x7F:
@@ -335,15 +336,17 @@ class SoftSwitches:
 
 class Memory:
     
-    def __init__(self, display=None, speaker=None):
+    def __init__(self, options, display=None, speaker=None):
         self.display = display
         self.speaker = speaker
         self.rom = ROM(0xD000, 0x3000)
         
         # available from http://www.easy68k.com/paulrsm/6502/index.html
-        self.rom.load_file(0xD000, "A2ROM.BIN")
+        self.rom.load_file(0xD000, options.rom)
         
         self.ram = RAM(0x0000, 0xC000)
+        if options.ram:
+            self.ram.load_file(0x0000, options.ram)
         self.softswitches = SoftSwitches(display, speaker)
     
     def load(self, address, data):
@@ -376,7 +379,7 @@ class Memory:
             self.display.update(address, value)
     
     def update(self, cycle):
-        if self.speaker.buffer and (cycle - self.speaker.last_toggle) > self.speaker.CHECK_INTERVAL:
+        if self.speaker and self.speaker.buffer and (cycle - self.speaker.last_toggle) > self.speaker.CHECK_INTERVAL:
             self.speaker.play()
 
 
@@ -1257,10 +1260,51 @@ class CPU:
     # @@@ NMI
 
 
+def usage():
+    print >>sys.stderr, "ApplePy - an Apple ][ emulator in Python"
+    print >>sys.stderr, "James Tauber / http://jtauber.com/"
+    print >>sys.stderr
+    print >>sys.stderr, "Usage: applepy.py [options]"
+    print >>sys.stderr
+    print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
+    print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
+    print >>sys.stderr, "    -q, --quiet    Quiet mode, no sounds (default sounds)"
+    sys.exit(1)
+
+
+def get_options():
+    class Options:
+        def __init__(self):
+            self.rom = "A2ROM.BIN"
+            self.ram = None
+            self.quiet = False
+
+    options = Options()
+    a = 1
+    while a < len(sys.argv):
+        if sys.argv[a].startswith("-"):
+            if sys.argv[a] in ("-R", "--rom"):
+                a += 1
+                options.rom = sys.argv[a]
+            elif sys.argv[a] in ("-r", "--ram"):
+                a += 1
+                options.ram = sys.argv[a]
+            elif sys.argv[a] in ("-q", "--quiet"):
+                options.quiet = True
+            else:
+                usage()
+        else:
+            usage()
+        a += 1
+
+    return options
+
+
 if __name__ == "__main__":
+    options = get_options()
     display = Display()
-    speaker = Speaker()
-    mem = Memory(display, speaker)
+    speaker = None if options.quiet else Speaker()
+    mem = Memory(options, display, speaker)
     
     cpu = CPU(mem)
     cpu.run()
