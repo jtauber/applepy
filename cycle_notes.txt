@@ -4,8 +4,7 @@ There are two ways we could represent cycle information:
    page boundary crossing (which seems opcode-specific, oddly)
 
 2. add cycles in individual methods like those accessing memory and the 
-   operations themselves, to be model *why* something takes the cycles it
-   does.
+   operations themselves, to model *why* something takes the cycles it does.
 
 I prefer 2 on the grounds of it being more instructive but it assumes that
 the way we do things is closely aligned to the way the 6502 is doing them
@@ -89,31 +88,31 @@ Class IIIa
 (followed by CLC, CLD, CLI, CLV, DEX, DEY, INX, INY, NOP, SEC, SED, SEI, TAX,
 TAY, TSX, TXA, TXS, TYA)
 
-implied 2
+implied         2
 
 
 Class IIIb
 (followed by PHA, PHP)
 
-implied 3
+implied         3
 
 
 Class IIIc
 (followed by PLA, PLP)
 
-implied 4
+implied         4
 
 
 Class IIId
 (followed by RTI, RTS)
 
-implied 6
+implied         6
 
 
 Class IIIe
 (followed by BRK)
 
-implied 7
+implied         7
 
 
 Class IV
@@ -133,5 +132,5 @@ indirect        5
 Class VI
 (followed by JSR)
 
-absolute 6
+absolute        6
 
