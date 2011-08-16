@@ -9,6 +9,7 @@ import struct
 import subprocess
 import sys
 import time
+import wave
 
 
 class Display:
@@ -288,12 +289,24 @@ class Speaker:
             self.play()
 
 
+class Cassette:
+
+    def __init__(self, fn):
+        wav = wave.open(fn, "r")
+        self.raw = wav.readframes(wav.getnframes())
+
+    def read_byte(self, cycle):
+        sys.stdout.write(str(cycle * 22000 / 1000000) + "\r")
+        return ord(self.raw[cycle * 22000 / 1000000])
+
+
 class SoftSwitches:
     
-    def __init__(self, display, speaker):
+    def __init__(self, display, speaker, cassette):
         self.kbd = 0x00
         self.display = display
         self.speaker = speaker
+        self.cassette = cassette
     
     def read_byte(self, cycle, address):
         assert 0xC000 <= address <= 0xCFFF
@@ -320,6 +333,8 @@ class SoftSwitches:
             self.display.lores()
         elif address == 0xC057:
             self.display.hires()
+        elif address == 0xC060:
+            return self.cassette.read_byte(cycle)
         else:
             pass # print "%04X" % address
         return 0x00
@@ -327,10 +342,10 @@ class SoftSwitches:
 
 class Apple2:
 
-    def __init__(self, options, display, speaker):
+    def __init__(self, options, display, speaker, cassette):
         self.display = display
         self.speaker = speaker
-        self.softswitches = SoftSwitches(display, speaker)
+        self.softswitches = SoftSwitches(display, speaker, cassette)
 
         args = [
             sys.executable,
@@ -429,6 +444,7 @@ if __name__ == "__main__":
     options = get_options()
     display = Display()
     speaker = None if options.quiet else Speaker()
+    cassette = Cassette("k7_apple_600202300_littlebrickout.wav")
 
-    apple = Apple2(options, display, speaker)
+    apple = Apple2(options, display, speaker, cassette)
     apple.run()
