@@ -350,7 +350,7 @@ class Apple2:
     def run(self):
         update_cycle = 0
         last_update_cycle_time = time.time()
-        last_update_cycle_cycles = self.cycles
+        last_update_cycle_cycles = 0
         
         quit = False
         while not quit:
@@ -386,9 +386,9 @@ class Apple2:
                 if self.speaker:
                     self.speaker.update(cycle)
                 update_cycle = 0
-                print (self.cycles - last_update_cycle_cycles) / (time.time() - last_update_cycle_time)
+                print (cycle - last_update_cycle_cycles) / (time.time() - last_update_cycle_time)
                 last_update_cycle_time = time.time()
-                last_update_cycle_cycles = self.cycles
+                last_update_cycle_cycles = cycle
     
 
 def usage():
