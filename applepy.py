@@ -296,8 +296,8 @@ class Cassette:
         self.raw = wav.readframes(wav.getnframes())
 
     def read_byte(self, cycle):
-        sys.stdout.write(str(cycle * 22000 / 1000000) + "\r")
-        return ord(self.raw[cycle * 22000 / 1000000])
+        offset = cycle * 22000 / 1000000
+        return ord(self.raw[offset]) if offset < len(self.raw) else 0x80
 
 
 class SoftSwitches:
@@ -334,7 +334,8 @@ class SoftSwitches:
         elif address == 0xC057:
             self.display.hires()
         elif address == 0xC060:
-            return self.cassette.read_byte(cycle)
+            if self.cassette:
+                return self.cassette.read_byte(cycle)
         else:
             pass # print "%04X" % address
         return 0x00
@@ -406,6 +407,7 @@ def usage():
     print >>sys.stderr
     print >>sys.stderr, "Usage: applepy.py [options]"
     print >>sys.stderr
+    print >>sys.stderr, "    -c, --cassette Cassette wav file to load"
     print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
     print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
     print >>sys.stderr, "    -q, --quiet    Quiet mode, no sounds (default sounds)"
@@ -415,6 +417,7 @@ def usage():
 def get_options():
     class Options:
         def __init__(self):
+            self.cassette = None
             self.rom = "A2ROM.BIN"
             self.ram = None
             self.quiet = False
@@ -423,7 +426,10 @@ def get_options():
     a = 1
     while a < len(sys.argv):
         if sys.argv[a].startswith("-"):
-            if sys.argv[a] in ("-R", "--rom"):
+            if sys.argv[a] in ("-c", "--cassette"):
+                a += 1
+                options.cassette = sys.argv[a]
+            elif sys.argv[a] in ("-R", "--rom"):
                 a += 1
                 options.rom = sys.argv[a]
             elif sys.argv[a] in ("-r", "--ram"):
@@ -444,7 +450,7 @@ if __name__ == "__main__":
     options = get_options()
     display = Display()
     speaker = None if options.quiet else Speaker()
-    cassette = Cassette("k7_apple_600202300_littlebrickout.wav")
+    cassette = Cassette(options.cassette) if options.cassette else None
 
     apple = Apple2(options, display, speaker, cassette)
     apple.run()
