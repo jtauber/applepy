@@ -333,7 +333,7 @@ class Apple2:
         self.softswitches = SoftSwitches(display, speaker)
 
         args = [
-            sys.executable,
+            "pypy",
             "cpu6502.py",
             "--rom", options.rom,
         ]
