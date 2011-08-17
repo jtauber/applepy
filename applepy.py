@@ -309,7 +309,7 @@ class Cassette:
         return ord(self.raw[offset]) if offset < len(self.raw) else 0x80
 
 
-class SoftSwitches:
+class IO:
     
     def __init__(self, display, speaker, cassette):
         self.kbd = 0x00
@@ -346,7 +346,7 @@ class SoftSwitches:
             if self.cassette:
                 return self.cassette.read_byte(cycle)
         else:
-            pass # print "%04X" % address
+            print "%04X" % address
         return 0x00
 
 
@@ -355,7 +355,7 @@ class Apple2:
     def __init__(self, options, display, speaker, cassette):
         self.display = display
         self.speaker = speaker
-        self.softswitches = SoftSwitches(display, speaker, cassette)
+        self.io = IO(display, speaker, cassette)
 
         args = [
             sys.executable,
@@ -379,7 +379,7 @@ class Apple2:
             op = self.core.stdout.read(8)
             cycle, rw, addr, val = struct.unpack("<IBHB", op)
             if rw == 0:
-                self.core.stdin.write(chr(self.softswitches.read_byte(cycle, addr)))
+                self.core.stdin.write(chr(self.io.read_byte(cycle, addr)))
                 self.core.stdin.flush()
             elif rw == 1:
                 self.display.update(addr, val)
@@ -399,7 +399,7 @@ class Apple2:
                     if key:
                         if key == 0x7F:
                             key = 0x08
-                        self.softswitches.kbd = 0x80 + key
+                        self.io.kbd = 0x80 + key
             
             update_cycle += 1
             if update_cycle >= 1024:
