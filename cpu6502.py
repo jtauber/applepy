@@ -25,7 +25,7 @@ class ROM:
             self._mem[address - self.start + offset] = datum
     
     def load_file(self, address, filename):
-        with open(filename) as f:
+        with open(filename, "rb") as f:
             for offset, datum in enumerate(f.read()):
                 self._mem[address - self.start + offset] = ord(datum)
     
