@@ -4,6 +4,7 @@
 
 
 import curses
+import socket
 import struct
 import subprocess
 import sys
@@ -55,20 +56,29 @@ def write(win, addr, val):
 
 def run(win):
     global kbd
-    p = subprocess.Popen(
-        args=[sys.executable, "cpu6502.py"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-    )
+
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(0)
+
+    args = [
+        sys.executable,
+        "cpu6502.py",
+        "--ui", str(listener.getsockname()[1]),
+        "--rom", options.rom,
+    ]
+
+    p = subprocess.Popen(args)
+    cpu, _ = listener.accept()
+
     win.clear()
     curses.noecho()
     win.nodelay(True)
     while True:
-        op = p.stdout.read(8)
+        op = cpu.recv(8)
         cycle, rw, addr, val = struct.unpack("<IBHB", op)
         if rw == 0:
-            p.stdin.write(chr(read(addr, val)))
-            p.stdin.flush()
+            cpu.send(chr(read(addr, val)))
         elif rw == 1:
             write(win, addr, val)
         else:
@@ -85,7 +95,39 @@ def run(win):
             pass
         except TypeError:
             pass
+    
+
+def usage():
+    print >>sys.stderr, "ApplePy - an Apple ][ emulator in Python"
+    print >>sys.stderr, "James Tauber / http://jtauber.com/"
+    print >>sys.stderr
+    print >>sys.stderr, "Usage: applepy_curses.py [options]"
+    print >>sys.stderr
+    print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
+    sys.exit(1)
+
+
+def get_options():
+    class Options:
+        def __init__(self):
+            self.rom = "A2ROM.BIN"
+
+    options = Options()
+    a = 1
+    while a < len(sys.argv):
+        if sys.argv[a].startswith("-"):
+            if sys.argv[a] in ("-R", "--rom"):
+                a += 1
+                options.rom = sys.argv[a]
+            else:
+                usage()
+        else:
+            usage()
+        a += 1
+
+    return options
 
 
 if __name__ == "__main__":
+    options = get_options()
     curses.wrapper(run)
