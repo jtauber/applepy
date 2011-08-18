@@ -3,8 +3,12 @@
 # originally written 2001, updated 2011
 
 
+import socket
 import struct
 import sys
+
+
+ui = None
 
 
 def signed(x):
@@ -86,22 +90,20 @@ class Memory:
             return 0
         op = struct.pack("<IBHB", cycle, 0, address, 0)
         try:
-            sys.stdout.write(op)
-            sys.stdout.flush()
-        except IOError:
+            ui.send(op)
+            b = ui.recv(1)
+            if len(b) == 0:
+                sys.exit(0)
+            return ord(b)
+        except socket.error:
             sys.exit(0)
-        b = sys.stdin.read(1)
-        if len(b) == 0:
-            sys.exit(0)
-        return ord(b)
 
     def bus_write(self, cycle, address, value):
         if not self.use_stdio:
             return
         op = struct.pack("<IBHB", cycle, 1, address, value)
         try:
-            sys.stdout.write(op)
-            sys.stdout.flush()
+            ui.send(op)
         except IOError:
             sys.exit(0)
 
@@ -509,7 +511,10 @@ class CPU:
     def reset(self):
         self.program_counter = self.read_word(self.RESET_VECTOR)
     
-    def run(self):
+    def run(self, uisocket):
+        global ui
+        ui = socket.socket()
+        ui.connect(("127.0.0.1", uisocket))
         while True:
             self.cycles += 2 # all instructions take this as a minimum
             op = self.read_pc_byte()
@@ -975,6 +980,7 @@ def usage():
     print >>sys.stderr
     print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
     print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
+    print >>sys.stderr, "    -u, --ui       UI socket"
     sys.exit(1)
 
 
@@ -983,6 +989,7 @@ def get_options():
         def __init__(self):
             self.rom = "A2ROM.BIN"
             self.ram = None
+            self.ui = None
 
     options = Options()
     a = 1
@@ -994,6 +1001,9 @@ def get_options():
             elif sys.argv[a] in ("-r", "--ram"):
                 a += 1
                 options.ram = sys.argv[a]
+            elif sys.argv[a] in ("-u", "--ui"):
+                a += 1
+                options.ui = int(sys.argv[a])
             else:
                 usage()
         else:
@@ -1004,13 +1014,13 @@ def get_options():
 
 
 if __name__ == "__main__":
-    if sys.stdout.isatty():
+    options = get_options()
+    if options.ui is None:
         print "ApplePy cpu core"
         print "Run applepy.py instead"
         sys.exit(0)
 
-    options = get_options()
     mem = Memory(options)
     
     cpu = CPU(mem)
-    cpu.run()
+    cpu.run(options.ui)

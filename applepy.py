@@ -5,6 +5,7 @@
 
 import numpy
 import pygame
+import socket
 import struct
 import subprocess
 import sys
@@ -357,30 +358,32 @@ class Apple2:
         self.speaker = speaker
         self.softswitches = SoftSwitches(display, speaker, cassette)
 
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(0)
+
         args = [
             sys.executable,
             "cpu6502.py",
+            "--ui", str(listener.getsockname()[1]),
             "--rom", options.rom,
         ]
         if options.ram:
             args.extend([
                 "--ram", options.ram,
             ])
-        self.core = subprocess.Popen(
-            args=args,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )
+        self.core = subprocess.Popen(args)
+
+        self.cpu, _ = listener.accept()
 
     def run(self):
         update_cycle = 0
         quit = False
         while not quit:
-            op = self.core.stdout.read(8)
+            op = self.cpu.recv(8)
             cycle, rw, addr, val = struct.unpack("<IBHB", op)
             if rw == 0:
-                self.core.stdin.write(chr(self.softswitches.read_byte(cycle, addr)))
-                self.core.stdin.flush()
+                self.cpu.send(chr(self.softswitches.read_byte(cycle, addr)))
             elif rw == 1:
                 self.display.update(addr, val)
             else:
