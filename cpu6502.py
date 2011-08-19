@@ -3,6 +3,7 @@
 # originally written 2001, updated 2011
 
 
+import select
 import socket
 import struct
 import sys
@@ -326,6 +327,63 @@ class Disassemble:
         return s
 
 
+class ControlHandler:
+
+    def __init__(self, cpu, sock):
+        self.cpu = cpu
+        self.sock = sock
+        self.sock.send("ApplePy 6502 core\n")
+        self.buffer = ""
+
+    def handle_read(self):
+        buf = self.sock.recv(1024)
+        if not buf:
+            self.cpu.control.remove(self)
+            return
+        self.buffer += buf
+        while True:
+            i = self.buffer.find("\n")
+            if i < 0:
+                break
+            s = self.buffer[:i].strip()
+            self.buffer = self.buffer[i+1:]
+            a = s.split()
+            if a[0] == "help":
+                self.sock.send("commands: help, peek, poke, status, quit, reset\n")
+            elif a[0] == "peek":
+                addr = int(a[1])
+                self.sock.send("%02X\n" % self.cpu.memory.read_byte(self.cpu.cycles, addr))
+            elif a[0] == "poke":
+                addr = int(a[1])
+                val = int(a[2])
+                self.cpu.memory.write_byte(self.cpu.cycles, addr, val)
+                self.sock.send("poked\n")
+            elif a[0] == "status":
+                self.sock.send("A=%02X X=%02X Y=%02X S=%02X PC=%04X F=%c%c0%c%c%c%c%c\n" % (
+                    self.cpu.accumulator,
+                    self.cpu.x_index,
+                    self.cpu.y_index,
+                    self.cpu.stack_pointer,
+                    self.cpu.program_counter,
+                    "N" if self.cpu.sign_flag else "n",
+                    "V" if self.cpu.overflow_flag else "v",
+                    "B" if self.cpu.break_flag else "b",
+                    "D" if self.cpu.decimal_mode_flag else "d",
+                    "I" if self.cpu.interrupt_disable_flag else "i",
+                    "Z" if self.cpu.zero_flag else "z",
+                    "C" if self.cpu.carry_flag else "c",
+                ))
+            elif a[0] == "quit":
+                self.cpu.quit = True
+                self.sock.send("quitting\n")
+            elif a[0] == "reset":
+                self.cpu.reset()
+                self.cpu.running = True
+                self.sock.send("resetting\n")
+            else:
+                self.sock.send("unknown command\n")
+
+
 class CPU:
     
     STACK_PAGE = 0x100
@@ -334,6 +392,12 @@ class CPU:
     def __init__(self, memory):
         self.memory = memory
         self.disassemble = Disassemble(self, memory)
+
+        self.control_listener = socket.socket()
+        self.control_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+        self.control_listener.bind(("127.0.0.1", 6502))
+        self.control_listener.listen(1)
+        self.control = []
         
         self.accumulator = 0x00
         self.x_index = 0x00
@@ -353,6 +417,8 @@ class CPU:
         
         self.setup_ops()
         self.reset()
+        self.running = True
+        self.quit = False
     
     def setup_ops(self):
         self.ops = [None] * 0x100
@@ -515,17 +581,35 @@ class CPU:
         global bus
         bus = socket.socket()
         bus.connect(("127.0.0.1", bus_port))
-        while True:
-            self.cycles += 2 # all instructions take this as a minimum
-            op = self.read_pc_byte()
-            func = self.ops[op]
-            if func is None:
-                print "UNKNOWN OP"
-                print hex(self.program_counter - 1)
-                print hex(op)
-                break
-            else:
-                self.ops[op]()
+
+        while not self.quit:
+
+            timeout = 0
+            if not self.running:
+                timeout = 1
+            sockets = [self.control_listener] + [x.sock for x in self.control]
+            rs, _, _ = select.select(sockets, [], [], timeout)
+            for s in rs:
+                if s is self.control_listener:
+                    cs, _ = self.control_listener.accept()
+                    self.control.append(ControlHandler(self, cs))
+                else:
+                    c = [x for x in self.control if x.sock is s][0]
+                    c.handle_read()
+
+            count = 1000
+            while count > 0 and self.running:
+                self.cycles += 2 # all instructions take this as a minimum
+                op = self.read_pc_byte()
+                func = self.ops[op]
+                if func is None:
+                    print "UNKNOWN OP"
+                    print hex(self.program_counter - 1)
+                    print hex(op)
+                    break
+                else:
+                    self.ops[op]()
+                count -= 1
     
     def test_run(self, start, end):
         self.program_counter = start
