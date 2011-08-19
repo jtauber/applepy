@@ -365,7 +365,7 @@ class Apple2:
         args = [
             sys.executable,
             "cpu6502.py",
-            "--ui", str(listener.getsockname()[1]),
+            "--bus", str(listener.getsockname()[1]),
             "--rom", options.rom,
         ]
         if options.ram:
