@@ -5,6 +5,7 @@
 
 import numpy
 import pygame
+import select
 import socket
 import struct
 import subprocess
@@ -374,6 +375,10 @@ class Apple2:
             ])
         self.core = subprocess.Popen(args)
 
+        rs, _, _ = select.select([listener], [], [], 2)
+        if not rs:
+            print >>sys.stderr, "CPU module did not start"
+            sys.exit(1)
         self.cpu, _ = listener.accept()
 
     def run(self):
