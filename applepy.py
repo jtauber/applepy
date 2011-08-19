@@ -386,6 +386,8 @@ class Apple2:
         quit = False
         while not quit:
             op = self.cpu.recv(8)
+            if len(op) == 0:
+                break
             cycle, rw, addr, val = struct.unpack("<IBHB", op)
             if rw == 0:
                 self.cpu.send(chr(self.softswitches.read_byte(cycle, addr)))
