@@ -3,8 +3,12 @@
 # originally written 2001, updated 2011
 
 
+import socket
 import struct
 import sys
+
+
+bus = None  # socket for bus I/O
 
 
 def signed(x):
@@ -42,8 +46,8 @@ class RAM(ROM):
 
 class Memory:
     
-    def __init__(self, options=None, use_stdio=True):
-        self.use_stdio = use_stdio
+    def __init__(self, options=None, use_bus=True):
+        self.use_bus = use_bus
         self.rom = ROM(0xD000, 0x3000)
         
         if options:
@@ -82,26 +86,24 @@ class Memory:
             self.bus_write(cycle, address, value)
 
     def bus_read(self, cycle, address):
-        if not self.use_stdio:
+        if not self.use_bus:
             return 0
         op = struct.pack("<IBHB", cycle, 0, address, 0)
         try:
-            sys.stdout.write(op)
-            sys.stdout.flush()
-        except IOError:
+            bus.send(op)
+            b = bus.recv(1)
+            if len(b) == 0:
+                sys.exit(0)
+            return ord(b)
+        except socket.error:
             sys.exit(0)
-        b = sys.stdin.read(1)
-        if len(b) == 0:
-            sys.exit(0)
-        return ord(b)
 
     def bus_write(self, cycle, address, value):
-        if not self.use_stdio:
+        if not self.use_bus:
             return
         op = struct.pack("<IBHB", cycle, 1, address, value)
         try:
-            sys.stdout.write(op)
-            sys.stdout.flush()
+            bus.send(op)
         except IOError:
             sys.exit(0)
 
@@ -509,7 +511,10 @@ class CPU:
     def reset(self):
         self.program_counter = self.read_word(self.RESET_VECTOR)
     
-    def run(self):
+    def run(self, bus_port):
+        global bus
+        bus = socket.socket()
+        bus.connect(("127.0.0.1", bus_port))
         while True:
             self.cycles += 2 # all instructions take this as a minimum
             op = self.read_pc_byte()
@@ -973,6 +978,7 @@ def usage():
     print >>sys.stderr
     print >>sys.stderr, "Usage: cpu6502.py [options]"
     print >>sys.stderr
+    print >>sys.stderr, "    -b, --bus      Bus port number"
     print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
     print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
     sys.exit(1)
@@ -983,12 +989,16 @@ def get_options():
         def __init__(self):
             self.rom = "A2ROM.BIN"
             self.ram = None
+            self.bus = None
 
     options = Options()
     a = 1
     while a < len(sys.argv):
         if sys.argv[a].startswith("-"):
-            if sys.argv[a] in ("-R", "--rom"):
+            if sys.argv[a] in ("-b", "--bus"):
+                a += 1
+                options.bus = int(sys.argv[a])
+            elif sys.argv[a] in ("-R", "--rom"):
                 a += 1
                 options.rom = sys.argv[a]
             elif sys.argv[a] in ("-r", "--ram"):
@@ -1004,13 +1014,13 @@ def get_options():
 
 
 if __name__ == "__main__":
-    if sys.stdout.isatty():
+    options = get_options()
+    if options.bus is None:
         print "ApplePy cpu core"
         print "Run applepy.py instead"
         sys.exit(0)
 
-    options = get_options()
     mem = Memory(options)
     
     cpu = CPU(mem)
-    cpu.run()
+    cpu.run(options.bus)
