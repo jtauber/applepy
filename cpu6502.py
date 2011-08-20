@@ -3,6 +3,9 @@
 # originally written 2001, updated 2011
 
 
+import BaseHTTPServer
+import json
+import re
 import select
 import socket
 import struct
@@ -117,7 +120,7 @@ class Disassemble:
         self.setup_ops()
     
     def setup_ops(self):
-        self.ops = [None] * 0x100
+        self.ops = [(1, "???")] * 0x100
         self.ops[0x00] = (1, "BRK", )
         self.ops[0x01] = (2, "ORA", self.indirect_x_mode)
         self.ops[0x05] = (2, "ORA", self.zero_page_mode)
@@ -272,143 +275,205 @@ class Disassemble:
     
     def absolute_mode(self, pc):
         a = self.cpu.read_word(pc + 1)
-        return "$%04X    [%04X] = %02X" % (a, a, self.cpu.read_word(a))
+        return {
+            "operand": "$%04X" % a,
+            "memory": [a, 2, self.cpu.read_word(a)],
+        }
     
     def absolute_x_mode(self, pc):
         a = self.cpu.read_word(pc + 1)
         e = a + self.cpu.x_index
-        return "$%04X,X  [%04X] = %02X" % (a, e, self.cpu.read_byte(e))
+        return {
+            "operand": "$%04X,X" % a,
+            "memory": [e, 1, self.cpu.read_byte(e)],
+        }
     
     def absolute_y_mode(self, pc):
         a = self.cpu.read_word(pc + 1)
         e = a + self.cpu.y_index
-        return "$%04X,Y    [%04X] = %02X" % (a, e, self.cpu.read_byte(e))
+        return {
+            "operand": "$%04X,Y" % a,
+            "memory": [e, 1, self.cpu.read_byte(e)],
+        }
     
     def immediate_mode(self, pc):
-        return "#$%02X" % (self.cpu.read_byte(pc + 1))
+        return {
+            "operand": "#$%02X" % (self.cpu.read_byte(pc + 1)),
+        }
     
     def indirect_mode(self, pc):
         a = self.cpu.read_word(pc + 1)
-        return "($%04X)  [%04X] = %02X" % (a, a, self.cpu.read_word(a))
+        return {
+            "operand": "($%04X)" % a,
+            "memory": [a, 2, self.cpu.read_word(a)],
+        }
     
     def indirect_x_mode(self, pc):
         z = self.cpu.read_byte(pc + 1)
         a = self.cpu.read_word((z + self.cpu.x_index) % 0x100)
-        return "($%02X,X)   [%04X] = %02X" % (z, a, self.cpu.read_byte(a))
+        return {
+            "operand": "($%02X,X)" % z,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def indirect_y_mode(self, pc):
         z = self.cpu.read_byte(pc + 1)
         a = self.cpu.read_word(z) + self.cpu.y_index
-        return "($%02X),Y  [%04X] = %02X" % (z, a, self.cpu.read_byte(a))
+        return {
+            "operand": "($%02X),Y" % z,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def relative_mode(self, pc):
-        return "$%04X" % (pc + signed(self.cpu.read_byte(pc + 1) + 2))
+        return {
+            "operand": "$%04X" % (pc + signed(self.cpu.read_byte(pc + 1) + 2)),
+        }
     
     def zero_page_mode(self, pc):
         a = self.cpu.read_byte(pc + 1)
-        return "$%02X      [%04X] = %02X" % (a, a, self.cpu.read_byte(a))
+        return {
+            "operand": "$%02X" % a,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def zero_page_x_mode(self, pc):
         z = self.cpu.read_byte(pc + 1)
         a = (z + self.cpu.x_index) % 0x100
-        return "$%02X,X    [%04X] = %02X" % (z, a, self.cpu.read_byte(a))
+        return {
+            "operand": "$%02X,X" % z,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def zero_page_y_mode(self, pc):
         z = self.cpu.read_byte(pc + 1)
         a = (z + self.cpu.y_index) % 0x100
-        return "$%02X,Y    [%04X] = %02X" % (z, a, self.cpu.read_byte(a))
+        return {
+            "operand": "$%02X,Y" % z,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def disasm(self, pc):
         op = self.cpu.read_byte(pc)
         info = self.ops[op]
-        s = "%04X  " % (pc)
-        for i in range(3):
-            if i < info[0]:
-                s += "%02X " % self.cpu.read_byte(pc + i)
-            else:
-                s += "   "
-        s += " %s" % (info[1])
+        r = {
+            "address": pc,
+            "bytes": [self.cpu.read_byte(pc + i) for i in range(info[0])],
+            "mnemonic": info[1],
+        }
         if len(info) > 2:
-            s += " " + info[2](pc)
-        return s
+            r.update(info[2](pc))
+        return r, info[0]
 
 
-class ControlHandler:
+class ControlHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    def __init__(self, cpu, sock):
+    def __init__(self, request, client_address, server, cpu):
         self.cpu = cpu
-        self.sock = sock
-        self.sock.send("ApplePy 6502 core\n")
-        self.buffer = ""
         self.disassemble = Disassemble(self.cpu, self.cpu.memory)
 
-    def cmd_disassemble(self, args):
-        addr = int(args[1])
-        self.sock.send(self.disassemble.disasm(addr) + "\n")
+        self.get_urls = {
+            r"/disassemble/(\d+)$": self.get_disassemble,
+            r"/memory/(\d+)(-(\d+))?$": self.get_memory,
+            r"/memory/(\d+)(-(\d+))?/raw$": self.get_memory_raw,
+            r"/status$": self.get_status,
+        }
 
-    def cmd_dump(self, args):
-        addr = int(args[1])
-        length = int(args[2])
-        self.sock.send(" ".join("%02X" % self.cpu.read_byte(x) for x in range(addr, addr + length)) + "\n")
+        self.post_urls = {
+            #r"/memory/(\d+)(-(\d+))?$": self.post_memory,
+            #r"/memory/(\d+)(-(\d+))?/raw$": self.post_memory_raw,
+            r"/quit$": self.post_quit,
+            r"/reset$": self.post_reset,
+        }
 
-    def cmd_help(self, args):
-        self.sock.send("commands: %s\n" % ", ".join(sorted(x[4:] for x in dir(self) if x.startswith("cmd_"))))
+        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
-    def cmd_peek(self, args):
-        addr = int(args[1])
-        self.sock.send("%02X\n" % self.cpu.read_byte(addr))
+    def log_request(self, code, size=0):
+        pass
 
-    def cmd_poke(self, args):
-        addr = int(args[1])
-        val = int(args[2])
-        self.cpu.write_byte(addr, val)
-        self.sock.send("poked\n")
+    def dispatch(self, urls):
+        for r, f in urls.items():
+            m = re.match(r, self.path)
+            if m is not None:
+                f(m)
+                break
+        else:
+            self.send_response(404)
+            self.end_headers()
 
-    def cmd_status(self, args):
-        self.sock.send("A=%02X X=%02X Y=%02X S=%02X PC=%04X F=%c%c0%c%c%c%c%c\n" % (
-            self.cpu.accumulator,
-            self.cpu.x_index,
-            self.cpu.y_index,
-            self.cpu.stack_pointer,
-            self.cpu.program_counter,
-            "N" if self.cpu.sign_flag else "n",
-            "V" if self.cpu.overflow_flag else "v",
-            "B" if self.cpu.break_flag else "b",
-            "D" if self.cpu.decimal_mode_flag else "d",
-            "I" if self.cpu.interrupt_disable_flag else "i",
-            "Z" if self.cpu.zero_flag else "z",
-            "C" if self.cpu.carry_flag else "c",
-        ))
+    def response(self, s):
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(s)))
+        self.end_headers()
+        self.wfile.write(s)
 
-    def cmd_quit(self, args):
+    def do_GET(self):
+        self.dispatch(self.get_urls)
+
+    def do_POST(self):
+        self.dispatch(self.post_urls)
+
+    def get_disassemble(self, m):
+        addr = int(m.group(1))
+        r = []
+        n = 20
+        while n > 0:
+            dis, length = self.disassemble.disasm(addr)
+            r.append(dis)
+            addr += length
+            n -= 1
+        self.response(json.dumps(r))
+
+    def get_memory_raw(self, m):
+        addr = int(m.group(1))
+        e = m.group(3)
+        if e is not None:
+            end = int(e)
+        else:
+            end = addr
+        self.response("".join([chr(self.cpu.read_byte(x)) for x in range(addr, end + 1)]))
+
+    def get_memory(self, m):
+        addr = int(m.group(1))
+        e = m.group(3)
+        if e is not None:
+            end = int(e)
+        else:
+            end = addr
+        self.response(json.dumps(list(map(self.cpu.read_byte, range(addr, end + 1)))))
+
+    def get_status(self, m):
+        self.response(json.dumps(dict((x, getattr(self.cpu, x)) for x in (
+            "accumulator",
+            "x_index",
+            "y_index",
+            "stack_pointer",
+            "program_counter",
+            "sign_flag",
+            "overflow_flag",
+            "break_flag",
+            "decimal_mode_flag",
+            "interrupt_disable_flag",
+            "zero_flag",
+            "carry_flag",
+        ))))
+
+    def post_quit(self, m):
         self.cpu.quit = True
-        self.sock.send("quitting\n")
+        self.response("")
 
-    def cmd_reset(self, args):
+    def post_reset(self, m):
         self.cpu.reset()
         self.cpu.running = True
-        self.sock.send("resetting\n")
+        self.response("")
 
-    def fileno(self):
-        return self.sock.fileno()
 
-    def handle_read(self):
-        buf = self.sock.recv(1024)
-        if not buf:
-            self.cpu.control.remove(self)
-            return
-        self.buffer += buf
-        while True:
-            i = self.buffer.find("\n")
-            if i < 0:
-                break
-            s = self.buffer[:i].strip()
-            self.buffer = self.buffer[i+1:]
-            a = s.split()
-            try:
-                getattr(self, "cmd_" + a[0])(a)
-            except AttributeError:
-                self.sock.send("unknown command\n")
+class ControlHandlerFactory:
+
+    def __init__(self, cpu):
+        self.cpu = cpu
+
+    def __call__(self, request, client_address, server):
+        return ControlHandler(request, client_address, server, self.cpu)
 
 
 class CPU:
@@ -419,11 +484,7 @@ class CPU:
     def __init__(self, memory):
         self.memory = memory
 
-        self.control_listener = socket.socket()
-        self.control_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-        self.control_listener.bind(("127.0.0.1", 6502))
-        self.control_listener.listen(1)
-        self.control = []
+        self.control_server = BaseHTTPServer.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
         
         self.accumulator = 0x00
         self.x_index = 0x00
@@ -613,14 +674,17 @@ class CPU:
             timeout = 0
             if not self.running:
                 timeout = 1
-            sockets = [self.control_listener] + self.control
+            # Currently this handler blocks from the moment
+            # a connection is accepted until the response
+            # is sent. TODO: use an async HTTP server that
+            # handles input data asynchronously.
+            sockets = [self.control_server]
             rs, _, _ = select.select(sockets, [], [], timeout)
             for s in rs:
-                if s is self.control_listener:
-                    cs, _ = self.control_listener.accept()
-                    self.control.append(ControlHandler(self, cs))
+                if s is self.control_server:
+                    self.control_server._handle_request_noblock()
                 else:
-                    s.handle_read()
+                    pass
 
             count = 1000
             while count > 0 and self.running:
