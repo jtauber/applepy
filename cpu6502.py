@@ -335,6 +335,11 @@ class ControlHandler:
         self.sock.send("ApplePy 6502 core\n")
         self.buffer = ""
 
+    def cmd_dump(self, args):
+        addr = int(args[1])
+        length = int(args[2])
+        self.sock.send(" ".join("%02X" % self.cpu.memory.read_byte(self.cpu.cycles, x) for x in range(addr, addr + length)) + "\n")
+
     def cmd_help(self, args):
         self.sock.send("commands: %s\n" % ", ".join(sorted(x[4:] for x in dir(self) if x.startswith("cmd_"))))
 
