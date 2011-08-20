@@ -389,6 +389,9 @@ class ControlHandler:
         self.cpu.running = True
         self.sock.send("resetting\n")
 
+    def fileno(self):
+        return self.sock.fileno()
+
     def handle_read(self):
         buf = self.sock.recv(1024)
         if not buf:
@@ -610,15 +613,14 @@ class CPU:
             timeout = 0
             if not self.running:
                 timeout = 1
-            sockets = [self.control_listener] + [x.sock for x in self.control]
+            sockets = [self.control_listener] + self.control
             rs, _, _ = select.select(sockets, [], [], timeout)
             for s in rs:
                 if s is self.control_listener:
                     cs, _ = self.control_listener.accept()
                     self.control.append(ControlHandler(self, cs))
                 else:
-                    c = [x for x in self.control if x.sock is s][0]
-                    c.handle_read()
+                    s.handle_read()
 
             count = 1000
             while count > 0 and self.running:
