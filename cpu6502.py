@@ -271,57 +271,57 @@ class Disassemble:
         self.ops[0xFE] = ("INC", self.absolute_x_mode)
     
     def absolute_mode(self, pc):
-        a = self.memory.read_word(pc + 1)
-        return "$%04X    [%04X] = %02X" % (a, a, self.memory.read_word(a))
+        a = self.cpu.read_word(pc + 1)
+        return "$%04X    [%04X] = %02X" % (a, a, self.cpu.read_word(a))
     
     def absolute_x_mode(self, pc):
-        a = self.memory.read_word(pc + 1)
+        a = self.cpu.read_word(pc + 1)
         e = a + self.cpu.x_index
-        return "$%04X,X  [%04X] = %02X" % (a, e, self.memory.read_byte(e))
+        return "$%04X,X  [%04X] = %02X" % (a, e, self.cpu.read_byte(e))
     
     def absolute_y_mode(self, pc):
-        a = self.memory.read_word(pc + 1)
+        a = self.cpu.read_word(pc + 1)
         e = a + self.cpu.y_index
-        return "$%04X,Y    [%04X] = %02X" % (a, e, self.memory.read_byte(e))
+        return "$%04X,Y    [%04X] = %02X" % (a, e, self.cpu.read_byte(e))
     
     def immediate_mode(self, pc):
-        return "#$%02X" % (self.memory.read_byte(pc + 1))
+        return "#$%02X" % (self.cpu.read_byte(pc + 1))
     
     def indirect_mode(self, pc):
-        a = self.memory.read_word(pc + 1)
-        return "($%04X)  [%04X] = %02X" % (a, a, self.memory.read_word(a))
+        a = self.cpu.read_word(pc + 1)
+        return "($%04X)  [%04X] = %02X" % (a, a, self.cpu.read_word(a))
     
     def indirect_x_mode(self, pc):
-        z = self.memory.read_byte(pc + 1)
-        a = self.memory.read_word((z + self.cpu.x_index) % 0x100)
-        return "($%02X,X)   [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+        z = self.cpu.read_byte(pc + 1)
+        a = self.cpu.read_word((z + self.cpu.x_index) % 0x100)
+        return "($%02X,X)   [%04X] = %02X" % (z, a, self.cpu.read_byte(a))
     
     def indirect_y_mode(self, pc):
-        z = self.memory.read_byte(pc + 1)
-        a = self.memory.read_word(z) + self.cpu.y_index
-        return "($%02X),Y  [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+        z = self.cpu.read_byte(pc + 1)
+        a = self.cpu.read_word(z) + self.cpu.y_index
+        return "($%02X),Y  [%04X] = %02X" % (z, a, self.cpu.read_byte(a))
     
     def relative_mode(self, pc):
-        return "$%04X" % (pc + signed(self.memory.read_byte(pc + 1) + 2))
+        return "$%04X" % (pc + signed(self.cpu.read_byte(pc + 1) + 2))
     
     def zero_page_mode(self, pc):
-        a = self.memory.read_byte(pc + 1)
-        return "$%02X      [%04X] = %02X" % (a, a, self.memory.read_byte(a))
+        a = self.cpu.read_byte(pc + 1)
+        return "$%02X      [%04X] = %02X" % (a, a, self.cpu.read_byte(a))
     
     def zero_page_x_mode(self, pc):
-        z = self.memory.read_byte(pc + 1)
+        z = self.cpu.read_byte(pc + 1)
         a = (z + self.cpu.x_index) % 0x100
-        return "$%02X,X    [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+        return "$%02X,X    [%04X] = %02X" % (z, a, self.cpu.read_byte(a))
     
     def zero_page_y_mode(self, pc):
-        z = self.memory.read_byte(pc + 1)
+        z = self.cpu.read_byte(pc + 1)
         a = (z + self.cpu.y_index) % 0x100
-        return "$%02X,Y    [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+        return "$%02X,Y    [%04X] = %02X" % (z, a, self.cpu.read_byte(a))
     
     def disasm(self, pc):
-        op = self.memory.read_byte(pc)
+        op = self.cpu.read_byte(pc)
         info = self.ops[op]
-        s = "%02X %s" % (pc, info[0])
+        s = "%04X %s" % (pc, info[0])
         if len(info) > 1:
             s += " " + info[1](pc)
         return s
@@ -334,23 +334,28 @@ class ControlHandler:
         self.sock = sock
         self.sock.send("ApplePy 6502 core\n")
         self.buffer = ""
+        self.disassemble = Disassemble(self.cpu, self.cpu.memory)
+
+    def cmd_disassemble(self, args):
+        addr = int(args[1])
+        self.sock.send(self.disassemble.disasm(addr) + "\n")
 
     def cmd_dump(self, args):
         addr = int(args[1])
         length = int(args[2])
-        self.sock.send(" ".join("%02X" % self.cpu.memory.read_byte(self.cpu.cycles, x) for x in range(addr, addr + length)) + "\n")
+        self.sock.send(" ".join("%02X" % self.cpu.read_byte(x) for x in range(addr, addr + length)) + "\n")
 
     def cmd_help(self, args):
         self.sock.send("commands: %s\n" % ", ".join(sorted(x[4:] for x in dir(self) if x.startswith("cmd_"))))
 
     def cmd_peek(self, args):
         addr = int(args[1])
-        self.sock.send("%02X\n" % self.cpu.memory.read_byte(self.cpu.cycles, addr))
+        self.sock.send("%02X\n" % self.cpu.read_byte(addr))
 
     def cmd_poke(self, args):
         addr = int(args[1])
         val = int(args[2])
-        self.cpu.memory.write_byte(self.cpu.cycles, addr, val)
+        self.cpu.write_byte(addr, val)
         self.sock.send("poked\n")
 
     def cmd_status(self, args):
@@ -404,7 +409,6 @@ class CPU:
     
     def __init__(self, memory):
         self.memory = memory
-        self.disassemble = Disassemble(self, memory)
 
         self.control_listener = socket.socket()
         self.control_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
