@@ -328,11 +328,17 @@ class IO:
             slot, switch = divmod(address - 0xC080, 0x10)
             if self.slots[slot] is not None:
                 return self.slots[slot].switch(cycle, switch)
+            else:
+                print "%04X" % address
+                return 0x00
         elif 0xC100 <= address <= 0xC7FF:
             hi, lo = divmod(address, 0x100)
             slot = hi - 0xC0
             if self.slots[slot] is not None:
                 return self.slots[slot].read_byte(lo)
+            else:
+                print "%04X" % address
+                return 0x00
         elif address == 0xC000:
             return self.kbd
         elif address == 0xC010:
@@ -402,35 +408,55 @@ class DiskController:
         0x4c, 0x01, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
     ]
     
+    def __init__(self):
+        self.phases = [0, 0, 0, 0]
+        self.track_index = 11
+    
     def switch(self, cycle, address):
         assert 0x00 <= address <= 0x0F
-        if address == 0x00:
-            print "phase 0 off"
-        elif address == 0x01:
-            print "phase 0 on"
-        elif address == 0x02:
-            print "phase 1 off"
-        elif address == 0x03:
-            print "phase 1 off"
-        elif address == 0x04:
-            print "phase 2 off"
-        elif address == 0x05:
-            print "phase 2 on"
-        elif address == 0x06:
-            print "phase 3 off"
-        elif address == 0x07:
-            print "phase 3 on"
+        if 0x00 <= address <= 0x07:
+            phase, on = divmod(address, 2)
+            self.phases[phase] = on
+            
+            current_phase = self.track_index & 0x7
+            if self.phases == [1, 0, 0, 0] or self.phases == [1, 1, 0, 1]:
+                next_phase = 0
+            elif self.phases == [1, 1, 0, 0]:
+                next_phase = 1
+            elif self.phases == [0, 1, 0, 0] or self.phases == [1, 1, 1, 0]:
+                next_phase = 2
+            elif self.phases == [0, 1, 1, 0]:
+                next_phase = 3
+            elif self.phases == [0, 0, 1, 0] or self.phases == [0, 1, 1, 1]:
+                next_phase = 4
+            elif self.phases == [0, 0, 1, 1]:
+                next_phase = 5
+            elif self.phases == [0, 0, 0, 1] or self.phases == [1, 0, 1, 1]:
+                next_phase = 6
+            elif self.phases == [1, 0, 0, 1]:
+                next_phase = 7
+            else: # [0, 0, 0, 0] [1, 0, 1, 0] [0, 1, 0, 1] [1, 1, 1, 1]
+                next_phase = current_phase
+            
+            phase_difference = ((next_phase - current_phase + 4) & 0x7) - 4
+            self.track_index += phase_difference
+            if self.track_index < 0:
+                self.track_index = 0
+            if self.track_index > 69:
+                self.track_index = 69
+            print "TRACK", self.track_index, phase_difference
+            raw_input()
+            
         elif address == 0x09:
             print "motor on"
         elif address == 0x0A:
             print "select drive 1"
         elif address == 0x0C:
-            print "read data"
+            pass # print "read data"
         elif address == 0x0E:
             print "set read"
         else:
-            print "%d %04X" % (cycle, 0xC080 + address)
-            raw_input("pause")
+            pass # print "%d %04X" % (cycle, 0xC080 + address)
         return 0x00
     
     def read_byte(self, address):
