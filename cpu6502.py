@@ -335,6 +335,44 @@ class ControlHandler:
         self.sock.send("ApplePy 6502 core\n")
         self.buffer = ""
 
+    def cmd_help(self, args):
+        self.sock.send("commands: %s\n" % ", ".join(sorted(x[4:] for x in dir(self) if x.startswith("cmd_"))))
+
+    def cmd_peek(self, args):
+        addr = int(args[1])
+        self.sock.send("%02X\n" % self.cpu.memory.read_byte(self.cpu.cycles, addr))
+
+    def cmd_poke(self, args):
+        addr = int(args[1])
+        val = int(args[2])
+        self.cpu.memory.write_byte(self.cpu.cycles, addr, val)
+        self.sock.send("poked\n")
+
+    def cmd_status(self, args):
+        self.sock.send("A=%02X X=%02X Y=%02X S=%02X PC=%04X F=%c%c0%c%c%c%c%c\n" % (
+            self.cpu.accumulator,
+            self.cpu.x_index,
+            self.cpu.y_index,
+            self.cpu.stack_pointer,
+            self.cpu.program_counter,
+            "N" if self.cpu.sign_flag else "n",
+            "V" if self.cpu.overflow_flag else "v",
+            "B" if self.cpu.break_flag else "b",
+            "D" if self.cpu.decimal_mode_flag else "d",
+            "I" if self.cpu.interrupt_disable_flag else "i",
+            "Z" if self.cpu.zero_flag else "z",
+            "C" if self.cpu.carry_flag else "c",
+        ))
+
+    def cmd_quit(self, args):
+        self.cpu.quit = True
+        self.sock.send("quitting\n")
+
+    def cmd_reset(self, args):
+        self.cpu.reset()
+        self.cpu.running = True
+        self.sock.send("resetting\n")
+
     def handle_read(self):
         buf = self.sock.recv(1024)
         if not buf:
@@ -348,39 +386,9 @@ class ControlHandler:
             s = self.buffer[:i].strip()
             self.buffer = self.buffer[i+1:]
             a = s.split()
-            if a[0] == "help":
-                self.sock.send("commands: help, peek, poke, status, quit, reset\n")
-            elif a[0] == "peek":
-                addr = int(a[1])
-                self.sock.send("%02X\n" % self.cpu.memory.read_byte(self.cpu.cycles, addr))
-            elif a[0] == "poke":
-                addr = int(a[1])
-                val = int(a[2])
-                self.cpu.memory.write_byte(self.cpu.cycles, addr, val)
-                self.sock.send("poked\n")
-            elif a[0] == "status":
-                self.sock.send("A=%02X X=%02X Y=%02X S=%02X PC=%04X F=%c%c0%c%c%c%c%c\n" % (
-                    self.cpu.accumulator,
-                    self.cpu.x_index,
-                    self.cpu.y_index,
-                    self.cpu.stack_pointer,
-                    self.cpu.program_counter,
-                    "N" if self.cpu.sign_flag else "n",
-                    "V" if self.cpu.overflow_flag else "v",
-                    "B" if self.cpu.break_flag else "b",
-                    "D" if self.cpu.decimal_mode_flag else "d",
-                    "I" if self.cpu.interrupt_disable_flag else "i",
-                    "Z" if self.cpu.zero_flag else "z",
-                    "C" if self.cpu.carry_flag else "c",
-                ))
-            elif a[0] == "quit":
-                self.cpu.quit = True
-                self.sock.send("quitting\n")
-            elif a[0] == "reset":
-                self.cpu.reset()
-                self.cpu.running = True
-                self.sock.send("resetting\n")
-            else:
+            try:
+                getattr(self, "cmd_" + a[0])(a)
+            except AttributeError:
                 self.sock.send("unknown command\n")
 
 
