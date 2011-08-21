@@ -379,8 +379,8 @@ class ControlHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         }
 
         self.post_urls = {
-            #r"/memory/(\d+)(-(\d+))?$": self.post_memory,
-            #r"/memory/(\d+)(-(\d+))?/raw$": self.post_memory_raw,
+            r"/memory/(\d+)(-(\d+))?$": self.post_memory,
+            r"/memory/(\d+)(-(\d+))?/raw$": self.post_memory_raw,
             r"/quit$": self.post_quit,
             r"/reset$": self.post_reset,
         }
@@ -456,6 +456,30 @@ class ControlHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             "zero_flag",
             "carry_flag",
         ))))
+
+    def post_memory(self, m):
+        addr = int(m.group(1))
+        e = m.group(3)
+        if e is not None:
+            end = int(e)
+        else:
+            end = addr
+        data = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        for i, a in enumerate(range(addr, end + 1)):
+            self.cpu.write_byte(a, data[i])
+        self.response("")
+
+    def post_memory_raw(self, m):
+        addr = int(m.group(1))
+        e = m.group(3)
+        if e is not None:
+            end = int(e)
+        else:
+            end = addr
+        data = self.rfile.read(int(self.headers["Content-Length"]))
+        for i, a in enumerate(range(addr, end + 1)):
+            self.cpu.write_byte(a, data[i])
+        self.response("")
 
     def post_quit(self, m):
         self.cpu.quit = True
