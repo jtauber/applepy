@@ -3,6 +3,10 @@
 # originally written 2001, updated 2011
 
 
+import BaseHTTPServer
+import json
+import re
+import select
 import socket
 import struct
 import sys
@@ -116,214 +120,384 @@ class Disassemble:
         self.setup_ops()
     
     def setup_ops(self):
-        self.ops = [None] * 0x100
-        self.ops[0x00] = ("BRK", )
-        self.ops[0x01] = ("ORA", self.indirect_x_mode)
-        self.ops[0x05] = ("ORA", self.zero_page_mode)
-        self.ops[0x06] = ("ASL", self.zero_page_mode)
-        self.ops[0x08] = ("PHP", )
-        self.ops[0x09] = ("ORA", self.immediate_mode)
-        self.ops[0x0A] = ("ASL", )
-        self.ops[0x0D] = ("ORA", self.absolute_mode)
-        self.ops[0x0E] = ("ASL", self.absolute_mode)
-        self.ops[0x10] = ("BPL", self.relative_mode)
-        self.ops[0x11] = ("ORA", self.indirect_y_mode)
-        self.ops[0x15] = ("ORA", self.zero_page_x_mode)
-        self.ops[0x16] = ("ASL", self.zero_page_x_mode)
-        self.ops[0x18] = ("CLC", )
-        self.ops[0x19] = ("ORA", self.absolute_y_mode)
-        self.ops[0x1D] = ("ORA", self.absolute_x_mode)
-        self.ops[0x1E] = ("ASL", self.absolute_x_mode)
-        self.ops[0x20] = ("JSR", self.absolute_mode)
-        self.ops[0x21] = ("AND", self.indirect_x_mode)
-        self.ops[0x24] = ("BIT", self.zero_page_mode)
-        self.ops[0x25] = ("AND", self.zero_page_mode)
-        self.ops[0x26] = ("ROL", self.zero_page_mode)
-        self.ops[0x28] = ("PLP", )
-        self.ops[0x29] = ("AND", self.immediate_mode)
-        self.ops[0x2A] = ("ROL", )
-        self.ops[0x2C] = ("BIT", self.absolute_mode)
-        self.ops[0x2D] = ("AND", self.absolute_mode)
-        self.ops[0x2E] = ("ROL", self.absolute_mode)
-        self.ops[0x30] = ("BMI", self.relative_mode)
-        self.ops[0x31] = ("AND", self.indirect_y_mode)
-        self.ops[0x35] = ("AND", self.zero_page_x_mode)
-        self.ops[0x36] = ("ROL", self.zero_page_x_mode)
-        self.ops[0x38] = ("SEC", )
-        self.ops[0x39] = ("AND", self.absolute_y_mode)
-        self.ops[0x3D] = ("AND", self.absolute_x_mode)
-        self.ops[0x3E] = ("ROL", self.absolute_x_mode)
-        self.ops[0x40] = ("RTI", )
-        self.ops[0x41] = ("EOR", self.indirect_x_mode)
-        self.ops[0x45] = ("EOR", self.zero_page_mode)
-        self.ops[0x46] = ("LSR", self.zero_page_mode)
-        self.ops[0x48] = ("PHA", )
-        self.ops[0x49] = ("EOR", self.immediate_mode)
-        self.ops[0x4A] = ("LSR", )
-        self.ops[0x4C] = ("JMP", self.absolute_mode)
-        self.ops[0x4D] = ("EOR", self.absolute_mode)
-        self.ops[0x4E] = ("LSR", self.absolute_mode)
-        self.ops[0x50] = ("BVC", self.relative_mode)
-        self.ops[0x51] = ("EOR", self.indirect_y_mode)
-        self.ops[0x55] = ("EOR", self.zero_page_x_mode)
-        self.ops[0x56] = ("LSR", self.zero_page_x_mode)
-        self.ops[0x58] = ("CLI", )
-        self.ops[0x59] = ("EOR", self.absolute_y_mode)
-        self.ops[0x5D] = ("EOR", self.absolute_x_mode)
-        self.ops[0x5E] = ("LSR", self.absolute_x_mode)
-        self.ops[0x60] = ("RTS", )
-        self.ops[0x61] = ("ADC", self.indirect_x_mode)
-        self.ops[0x65] = ("ADC", self.zero_page_mode)
-        self.ops[0x66] = ("ROR", self.zero_page_mode)
-        self.ops[0x68] = ("PLA", )
-        self.ops[0x69] = ("ADC", self.immediate_mode)
-        self.ops[0x6A] = ("ROR", )
-        self.ops[0x6C] = ("JMP", self.indirect_mode)
-        self.ops[0x6D] = ("ADC", self.absolute_mode)
-        self.ops[0x6E] = ("ROR", self.absolute_mode)
-        self.ops[0x70] = ("BVS", self.relative_mode)
-        self.ops[0x71] = ("ADC", self.indirect_y_mode)
-        self.ops[0x75] = ("ADC", self.zero_page_x_mode)
-        self.ops[0x76] = ("ROR", self.zero_page_x_mode)
-        self.ops[0x78] = ("SEI", )
-        self.ops[0x79] = ("ADC", self.absolute_y_mode)
-        self.ops[0x7D] = ("ADC", self.absolute_x_mode)
-        self.ops[0x7E] = ("ROR", self.absolute_x_mode)
-        self.ops[0x81] = ("STA", self.indirect_x_mode)
-        self.ops[0x84] = ("STY", self.zero_page_mode)
-        self.ops[0x85] = ("STA", self.zero_page_mode)
-        self.ops[0x86] = ("STX", self.zero_page_mode)
-        self.ops[0x88] = ("DEY", )
-        self.ops[0x8A] = ("TXA", )
-        self.ops[0x8C] = ("STY", self.absolute_mode)
-        self.ops[0x8D] = ("STA", self.absolute_mode)
-        self.ops[0x8E] = ("STX", self.absolute_mode)
-        self.ops[0x90] = ("BCC", self.relative_mode)
-        self.ops[0x91] = ("STA", self.indirect_y_mode)
-        self.ops[0x94] = ("STY", self.zero_page_x_mode)
-        self.ops[0x95] = ("STA", self.zero_page_x_mode)
-        self.ops[0x96] = ("STX", self.zero_page_y_mode)
-        self.ops[0x98] = ("TYA", )
-        self.ops[0x99] = ("STA", self.absolute_y_mode)
-        self.ops[0x9A] = ("TXS", )
-        self.ops[0x9D] = ("STA", self.absolute_x_mode)
-        self.ops[0xA0] = ("LDY", self.immediate_mode)
-        self.ops[0xA1] = ("LDA", self.indirect_x_mode)
-        self.ops[0xA2] = ("LDX", self.immediate_mode)
-        self.ops[0xA4] = ("LDY", self.zero_page_mode)
-        self.ops[0xA5] = ("LDA", self.zero_page_mode)
-        self.ops[0xA6] = ("LDX", self.zero_page_mode)
-        self.ops[0xA8] = ("TAY", )
-        self.ops[0xA9] = ("LDA", self.immediate_mode)
-        self.ops[0xAA] = ("TAX", )
-        self.ops[0xAC] = ("LDY", self.absolute_mode)
-        self.ops[0xAD] = ("LDA", self.absolute_mode)
-        self.ops[0xAE] = ("LDX", self.absolute_mode)
-        self.ops[0xB0] = ("BCS", self.relative_mode)
-        self.ops[0xB1] = ("LDA", self.indirect_y_mode)
-        self.ops[0xB4] = ("LDY", self.zero_page_x_mode)
-        self.ops[0xB5] = ("LDA", self.zero_page_x_mode)
-        self.ops[0xB6] = ("LDX", self.zero_page_y_mode)
-        self.ops[0xB8] = ("CLV", )
-        self.ops[0xB9] = ("LDA", self.absolute_y_mode)
-        self.ops[0xBA] = ("TSX", )
-        self.ops[0xBC] = ("LDY", self.absolute_x_mode)
-        self.ops[0xBD] = ("LDA", self.absolute_x_mode)
-        self.ops[0xBE] = ("LDX", self.absolute_y_mode)
-        self.ops[0xC0] = ("CPY", self.immediate_mode)
-        self.ops[0xC1] = ("CMP", self.indirect_x_mode)
-        self.ops[0xC4] = ("CPY", self.zero_page_mode)
-        self.ops[0xC5] = ("CMP", self.zero_page_mode)
-        self.ops[0xC6] = ("DEC", self.zero_page_mode)
-        self.ops[0xC8] = ("INY", )
-        self.ops[0xC9] = ("CMP", self.immediate_mode)
-        self.ops[0xCA] = ("DEX", )
-        self.ops[0xCC] = ("CPY", self.absolute_mode)
-        self.ops[0xCD] = ("CMP", self.absolute_mode)
-        self.ops[0xCE] = ("DEC", self.absolute_mode)
-        self.ops[0xD0] = ("BNE", self.relative_mode)
-        self.ops[0xD1] = ("CMP", self.indirect_y_mode)
-        self.ops[0xD5] = ("CMP", self.zero_page_x_mode)
-        self.ops[0xD6] = ("DEC", self.zero_page_x_mode)
-        self.ops[0xD8] = ("CLD", )
-        self.ops[0xD9] = ("CMP", self.absolute_y_mode)
-        self.ops[0xDD] = ("CMP", self.absolute_x_mode)
-        self.ops[0xDE] = ("DEC", self.absolute_x_mode)
-        self.ops[0xE0] = ("CPX", self.immediate_mode)
-        self.ops[0xE1] = ("SBC", self.indirect_x_mode)
-        self.ops[0xE4] = ("CPX", self.zero_page_mode)
-        self.ops[0xE5] = ("SBC", self.zero_page_mode)
-        self.ops[0xE6] = ("INC", self.zero_page_mode)
-        self.ops[0xE8] = ("INX", )
-        self.ops[0xE9] = ("SBC", self.immediate_mode)
-        self.ops[0xEA] = ("NOP", )
-        self.ops[0xEC] = ("CPX", self.absolute_mode)
-        self.ops[0xED] = ("SBC", self.absolute_mode)
-        self.ops[0xEE] = ("INC", self.absolute_mode)
-        self.ops[0xF0] = ("BEQ", self.relative_mode)
-        self.ops[0xF1] = ("SBC", self.indirect_y_mode)
-        self.ops[0xF5] = ("SBC", self.zero_page_x_mode)
-        self.ops[0xF6] = ("INC", self.zero_page_x_mode)
-        self.ops[0xF8] = ("SED", )
-        self.ops[0xF9] = ("SBC", self.absolute_y_mode)
-        self.ops[0xFD] = ("SBC", self.absolute_x_mode)
-        self.ops[0xFE] = ("INC", self.absolute_x_mode)
+        self.ops = [(1, "???")] * 0x100
+        self.ops[0x00] = (1, "BRK", )
+        self.ops[0x01] = (2, "ORA", self.indirect_x_mode)
+        self.ops[0x05] = (2, "ORA", self.zero_page_mode)
+        self.ops[0x06] = (2, "ASL", self.zero_page_mode)
+        self.ops[0x08] = (1, "PHP", )
+        self.ops[0x09] = (2, "ORA", self.immediate_mode)
+        self.ops[0x0A] = (1, "ASL", )
+        self.ops[0x0D] = (3, "ORA", self.absolute_mode)
+        self.ops[0x0E] = (3, "ASL", self.absolute_mode)
+        self.ops[0x10] = (2, "BPL", self.relative_mode)
+        self.ops[0x11] = (2, "ORA", self.indirect_y_mode)
+        self.ops[0x15] = (2, "ORA", self.zero_page_x_mode)
+        self.ops[0x16] = (2, "ASL", self.zero_page_x_mode)
+        self.ops[0x18] = (1, "CLC", )
+        self.ops[0x19] = (3, "ORA", self.absolute_y_mode)
+        self.ops[0x1D] = (3, "ORA", self.absolute_x_mode)
+        self.ops[0x1E] = (3, "ASL", self.absolute_x_mode)
+        self.ops[0x20] = (3, "JSR", self.absolute_mode)
+        self.ops[0x21] = (2, "AND", self.indirect_x_mode)
+        self.ops[0x24] = (2, "BIT", self.zero_page_mode)
+        self.ops[0x25] = (2, "AND", self.zero_page_mode)
+        self.ops[0x26] = (2, "ROL", self.zero_page_mode)
+        self.ops[0x28] = (1, "PLP", )
+        self.ops[0x29] = (2, "AND", self.immediate_mode)
+        self.ops[0x2A] = (1, "ROL", )
+        self.ops[0x2C] = (3, "BIT", self.absolute_mode)
+        self.ops[0x2D] = (3, "AND", self.absolute_mode)
+        self.ops[0x2E] = (3, "ROL", self.absolute_mode)
+        self.ops[0x30] = (2, "BMI", self.relative_mode)
+        self.ops[0x31] = (2, "AND", self.indirect_y_mode)
+        self.ops[0x35] = (2, "AND", self.zero_page_x_mode)
+        self.ops[0x36] = (2, "ROL", self.zero_page_x_mode)
+        self.ops[0x38] = (1, "SEC", )
+        self.ops[0x39] = (3, "AND", self.absolute_y_mode)
+        self.ops[0x3D] = (3, "AND", self.absolute_x_mode)
+        self.ops[0x3E] = (3, "ROL", self.absolute_x_mode)
+        self.ops[0x40] = (1, "RTI", )
+        self.ops[0x41] = (2, "EOR", self.indirect_x_mode)
+        self.ops[0x45] = (2, "EOR", self.zero_page_mode)
+        self.ops[0x46] = (2, "LSR", self.zero_page_mode)
+        self.ops[0x48] = (1, "PHA", )
+        self.ops[0x49] = (2, "EOR", self.immediate_mode)
+        self.ops[0x4A] = (1, "LSR", )
+        self.ops[0x4C] = (3, "JMP", self.absolute_mode)
+        self.ops[0x4D] = (3, "EOR", self.absolute_mode)
+        self.ops[0x4E] = (3, "LSR", self.absolute_mode)
+        self.ops[0x50] = (2, "BVC", self.relative_mode)
+        self.ops[0x51] = (2, "EOR", self.indirect_y_mode)
+        self.ops[0x55] = (2, "EOR", self.zero_page_x_mode)
+        self.ops[0x56] = (2, "LSR", self.zero_page_x_mode)
+        self.ops[0x58] = (1, "CLI", )
+        self.ops[0x59] = (3, "EOR", self.absolute_y_mode)
+        self.ops[0x5D] = (3, "EOR", self.absolute_x_mode)
+        self.ops[0x5E] = (3, "LSR", self.absolute_x_mode)
+        self.ops[0x60] = (1, "RTS", )
+        self.ops[0x61] = (2, "ADC", self.indirect_x_mode)
+        self.ops[0x65] = (2, "ADC", self.zero_page_mode)
+        self.ops[0x66] = (2, "ROR", self.zero_page_mode)
+        self.ops[0x68] = (1, "PLA", )
+        self.ops[0x69] = (2, "ADC", self.immediate_mode)
+        self.ops[0x6A] = (1, "ROR", )
+        self.ops[0x6C] = (3, "JMP", self.indirect_mode)
+        self.ops[0x6D] = (3, "ADC", self.absolute_mode)
+        self.ops[0x6E] = (3, "ROR", self.absolute_mode)
+        self.ops[0x70] = (2, "BVS", self.relative_mode)
+        self.ops[0x71] = (2, "ADC", self.indirect_y_mode)
+        self.ops[0x75] = (2, "ADC", self.zero_page_x_mode)
+        self.ops[0x76] = (2, "ROR", self.zero_page_x_mode)
+        self.ops[0x78] = (1, "SEI", )
+        self.ops[0x79] = (3, "ADC", self.absolute_y_mode)
+        self.ops[0x7D] = (3, "ADC", self.absolute_x_mode)
+        self.ops[0x7E] = (3, "ROR", self.absolute_x_mode)
+        self.ops[0x81] = (2, "STA", self.indirect_x_mode)
+        self.ops[0x84] = (2, "STY", self.zero_page_mode)
+        self.ops[0x85] = (2, "STA", self.zero_page_mode)
+        self.ops[0x86] = (2, "STX", self.zero_page_mode)
+        self.ops[0x88] = (1, "DEY", )
+        self.ops[0x8A] = (1, "TXA", )
+        self.ops[0x8C] = (3, "STY", self.absolute_mode)
+        self.ops[0x8D] = (3, "STA", self.absolute_mode)
+        self.ops[0x8E] = (3, "STX", self.absolute_mode)
+        self.ops[0x90] = (2, "BCC", self.relative_mode)
+        self.ops[0x91] = (2, "STA", self.indirect_y_mode)
+        self.ops[0x94] = (2, "STY", self.zero_page_x_mode)
+        self.ops[0x95] = (2, "STA", self.zero_page_x_mode)
+        self.ops[0x96] = (2, "STX", self.zero_page_y_mode)
+        self.ops[0x98] = (1, "TYA", )
+        self.ops[0x99] = (3, "STA", self.absolute_y_mode)
+        self.ops[0x9A] = (1, "TXS", )
+        self.ops[0x9D] = (3, "STA", self.absolute_x_mode)
+        self.ops[0xA0] = (2, "LDY", self.immediate_mode)
+        self.ops[0xA1] = (2, "LDA", self.indirect_x_mode)
+        self.ops[0xA2] = (2, "LDX", self.immediate_mode)
+        self.ops[0xA4] = (2, "LDY", self.zero_page_mode)
+        self.ops[0xA5] = (2, "LDA", self.zero_page_mode)
+        self.ops[0xA6] = (2, "LDX", self.zero_page_mode)
+        self.ops[0xA8] = (1, "TAY", )
+        self.ops[0xA9] = (2, "LDA", self.immediate_mode)
+        self.ops[0xAA] = (1, "TAX", )
+        self.ops[0xAC] = (3, "LDY", self.absolute_mode)
+        self.ops[0xAD] = (3, "LDA", self.absolute_mode)
+        self.ops[0xAE] = (3, "LDX", self.absolute_mode)
+        self.ops[0xB0] = (2, "BCS", self.relative_mode)
+        self.ops[0xB1] = (2, "LDA", self.indirect_y_mode)
+        self.ops[0xB4] = (2, "LDY", self.zero_page_x_mode)
+        self.ops[0xB5] = (2, "LDA", self.zero_page_x_mode)
+        self.ops[0xB6] = (2, "LDX", self.zero_page_y_mode)
+        self.ops[0xB8] = (1, "CLV", )
+        self.ops[0xB9] = (3, "LDA", self.absolute_y_mode)
+        self.ops[0xBA] = (1, "TSX", )
+        self.ops[0xBC] = (3, "LDY", self.absolute_x_mode)
+        self.ops[0xBD] = (3, "LDA", self.absolute_x_mode)
+        self.ops[0xBE] = (3, "LDX", self.absolute_y_mode)
+        self.ops[0xC0] = (2, "CPY", self.immediate_mode)
+        self.ops[0xC1] = (2, "CMP", self.indirect_x_mode)
+        self.ops[0xC4] = (2, "CPY", self.zero_page_mode)
+        self.ops[0xC5] = (2, "CMP", self.zero_page_mode)
+        self.ops[0xC6] = (2, "DEC", self.zero_page_mode)
+        self.ops[0xC8] = (1, "INY", )
+        self.ops[0xC9] = (2, "CMP", self.immediate_mode)
+        self.ops[0xCA] = (1, "DEX", )
+        self.ops[0xCC] = (3, "CPY", self.absolute_mode)
+        self.ops[0xCD] = (3, "CMP", self.absolute_mode)
+        self.ops[0xCE] = (3, "DEC", self.absolute_mode)
+        self.ops[0xD0] = (2, "BNE", self.relative_mode)
+        self.ops[0xD1] = (2, "CMP", self.indirect_y_mode)
+        self.ops[0xD5] = (2, "CMP", self.zero_page_x_mode)
+        self.ops[0xD6] = (2, "DEC", self.zero_page_x_mode)
+        self.ops[0xD8] = (1, "CLD", )
+        self.ops[0xD9] = (3, "CMP", self.absolute_y_mode)
+        self.ops[0xDD] = (3, "CMP", self.absolute_x_mode)
+        self.ops[0xDE] = (3, "DEC", self.absolute_x_mode)
+        self.ops[0xE0] = (2, "CPX", self.immediate_mode)
+        self.ops[0xE1] = (2, "SBC", self.indirect_x_mode)
+        self.ops[0xE4] = (2, "CPX", self.zero_page_mode)
+        self.ops[0xE5] = (2, "SBC", self.zero_page_mode)
+        self.ops[0xE6] = (2, "INC", self.zero_page_mode)
+        self.ops[0xE8] = (1, "INX", )
+        self.ops[0xE9] = (2, "SBC", self.immediate_mode)
+        self.ops[0xEA] = (1, "NOP", )
+        self.ops[0xEC] = (3, "CPX", self.absolute_mode)
+        self.ops[0xED] = (3, "SBC", self.absolute_mode)
+        self.ops[0xEE] = (3, "INC", self.absolute_mode)
+        self.ops[0xF0] = (2, "BEQ", self.relative_mode)
+        self.ops[0xF1] = (2, "SBC", self.indirect_y_mode)
+        self.ops[0xF5] = (2, "SBC", self.zero_page_x_mode)
+        self.ops[0xF6] = (2, "INC", self.zero_page_x_mode)
+        self.ops[0xF8] = (1, "SED", )
+        self.ops[0xF9] = (3, "SBC", self.absolute_y_mode)
+        self.ops[0xFD] = (3, "SBC", self.absolute_x_mode)
+        self.ops[0xFE] = (3, "INC", self.absolute_x_mode)
     
     def absolute_mode(self, pc):
-        a = self.memory.read_word(pc + 1)
-        return "$%04X    [%04X] = %02X" % (a, a, self.memory.read_word(a))
+        a = self.cpu.read_word(pc + 1)
+        return {
+            "operand": "$%04X" % a,
+            "memory": [a, 2, self.cpu.read_word(a)],
+        }
     
     def absolute_x_mode(self, pc):
-        a = self.memory.read_word(pc + 1)
+        a = self.cpu.read_word(pc + 1)
         e = a + self.cpu.x_index
-        return "$%04X,X  [%04X] = %02X" % (a, e, self.memory.read_byte(e))
+        return {
+            "operand": "$%04X,X" % a,
+            "memory": [e, 1, self.cpu.read_byte(e)],
+        }
     
     def absolute_y_mode(self, pc):
-        a = self.memory.read_word(pc + 1)
+        a = self.cpu.read_word(pc + 1)
         e = a + self.cpu.y_index
-        return "$%04X,Y    [%04X] = %02X" % (a, e, self.memory.read_byte(e))
+        return {
+            "operand": "$%04X,Y" % a,
+            "memory": [e, 1, self.cpu.read_byte(e)],
+        }
     
     def immediate_mode(self, pc):
-        return "#$%02X" % (self.memory.read_byte(pc + 1))
+        return {
+            "operand": "#$%02X" % (self.cpu.read_byte(pc + 1)),
+        }
     
     def indirect_mode(self, pc):
-        a = self.memory.read_word(pc + 1)
-        return "($%04X)  [%04X] = %02X" % (a, a, self.memory.read_word(a))
+        a = self.cpu.read_word(pc + 1)
+        return {
+            "operand": "($%04X)" % a,
+            "memory": [a, 2, self.cpu.read_word(a)],
+        }
     
     def indirect_x_mode(self, pc):
-        z = self.memory.read_byte(pc + 1)
-        a = self.memory.read_word((z + self.cpu.x_index) % 0x100)
-        return "($%02X,X)   [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+        z = self.cpu.read_byte(pc + 1)
+        a = self.cpu.read_word((z + self.cpu.x_index) % 0x100)
+        return {
+            "operand": "($%02X,X)" % z,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def indirect_y_mode(self, pc):
-        z = self.memory.read_byte(pc + 1)
-        a = self.memory.read_word(z) + self.cpu.y_index
-        return "($%02X),Y  [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+        z = self.cpu.read_byte(pc + 1)
+        a = self.cpu.read_word(z) + self.cpu.y_index
+        return {
+            "operand": "($%02X),Y" % z,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def relative_mode(self, pc):
-        return "$%04X" % (pc + signed(self.memory.read_byte(pc + 1) + 2))
+        return {
+            "operand": "$%04X" % (pc + signed(self.cpu.read_byte(pc + 1) + 2)),
+        }
     
     def zero_page_mode(self, pc):
-        a = self.memory.read_byte(pc + 1)
-        return "$%02X      [%04X] = %02X" % (a, a, self.memory.read_byte(a))
+        a = self.cpu.read_byte(pc + 1)
+        return {
+            "operand": "$%02X" % a,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def zero_page_x_mode(self, pc):
-        z = self.memory.read_byte(pc + 1)
+        z = self.cpu.read_byte(pc + 1)
         a = (z + self.cpu.x_index) % 0x100
-        return "$%02X,X    [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+        return {
+            "operand": "$%02X,X" % z,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def zero_page_y_mode(self, pc):
-        z = self.memory.read_byte(pc + 1)
+        z = self.cpu.read_byte(pc + 1)
         a = (z + self.cpu.y_index) % 0x100
-        return "$%02X,Y    [%04X] = %02X" % (z, a, self.memory.read_byte(a))
+        return {
+            "operand": "$%02X,Y" % z,
+            "memory": [a, 1, self.cpu.read_byte(a)],
+        }
     
     def disasm(self, pc):
-        op = self.memory.read_byte(pc)
+        op = self.cpu.read_byte(pc)
         info = self.ops[op]
-        s = "%02X %s" % (pc, info[0])
-        if len(info) > 1:
-            s += " " + info[1](pc)
-        return s
+        r = {
+            "address": pc,
+            "bytes": [self.cpu.read_byte(pc + i) for i in range(info[0])],
+            "mnemonic": info[1],
+        }
+        if len(info) > 2:
+            r.update(info[2](pc))
+        return r, info[0]
+
+
+class ControlHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
+    def __init__(self, request, client_address, server, cpu):
+        self.cpu = cpu
+        self.disassemble = Disassemble(self.cpu, self.cpu.memory)
+
+        self.get_urls = {
+            r"/disassemble/(\d+)$": self.get_disassemble,
+            r"/memory/(\d+)(-(\d+))?$": self.get_memory,
+            r"/memory/(\d+)(-(\d+))?/raw$": self.get_memory_raw,
+            r"/status$": self.get_status,
+        }
+
+        self.post_urls = {
+            r"/memory/(\d+)(-(\d+))?$": self.post_memory,
+            r"/memory/(\d+)(-(\d+))?/raw$": self.post_memory_raw,
+            r"/quit$": self.post_quit,
+            r"/reset$": self.post_reset,
+        }
+
+        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+
+    def log_request(self, code, size=0):
+        pass
+
+    def dispatch(self, urls):
+        for r, f in urls.items():
+            m = re.match(r, self.path)
+            if m is not None:
+                f(m)
+                break
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def response(self, s):
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(s)))
+        self.end_headers()
+        self.wfile.write(s)
+
+    def do_GET(self):
+        self.dispatch(self.get_urls)
+
+    def do_POST(self):
+        self.dispatch(self.post_urls)
+
+    def get_disassemble(self, m):
+        addr = int(m.group(1))
+        r = []
+        n = 20
+        while n > 0:
+            dis, length = self.disassemble.disasm(addr)
+            r.append(dis)
+            addr += length
+            n -= 1
+        self.response(json.dumps(r))
+
+    def get_memory_raw(self, m):
+        addr = int(m.group(1))
+        e = m.group(3)
+        if e is not None:
+            end = int(e)
+        else:
+            end = addr
+        self.response("".join([chr(self.cpu.read_byte(x)) for x in range(addr, end + 1)]))
+
+    def get_memory(self, m):
+        addr = int(m.group(1))
+        e = m.group(3)
+        if e is not None:
+            end = int(e)
+        else:
+            end = addr
+        self.response(json.dumps(list(map(self.cpu.read_byte, range(addr, end + 1)))))
+
+    def get_status(self, m):
+        self.response(json.dumps(dict((x, getattr(self.cpu, x)) for x in (
+            "accumulator",
+            "x_index",
+            "y_index",
+            "stack_pointer",
+            "program_counter",
+            "sign_flag",
+            "overflow_flag",
+            "break_flag",
+            "decimal_mode_flag",
+            "interrupt_disable_flag",
+            "zero_flag",
+            "carry_flag",
+        ))))
+
+    def post_memory(self, m):
+        addr = int(m.group(1))
+        e = m.group(3)
+        if e is not None:
+            end = int(e)
+        else:
+            end = addr
+        data = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+        for i, a in enumerate(range(addr, end + 1)):
+            self.cpu.write_byte(a, data[i])
+        self.response("")
+
+    def post_memory_raw(self, m):
+        addr = int(m.group(1))
+        e = m.group(3)
+        if e is not None:
+            end = int(e)
+        else:
+            end = addr
+        data = self.rfile.read(int(self.headers["Content-Length"]))
+        for i, a in enumerate(range(addr, end + 1)):
+            self.cpu.write_byte(a, data[i])
+        self.response("")
+
+    def post_quit(self, m):
+        self.cpu.quit = True
+        self.response("")
+
+    def post_reset(self, m):
+        self.cpu.reset()
+        self.cpu.running = True
+        self.response("")
+
+
+class ControlHandlerFactory:
+
+    def __init__(self, cpu):
+        self.cpu = cpu
+
+    def __call__(self, request, client_address, server):
+        return ControlHandler(request, client_address, server, self.cpu)
 
 
 class CPU:
@@ -333,7 +507,8 @@ class CPU:
     
     def __init__(self, memory):
         self.memory = memory
-        self.disassemble = Disassemble(self, memory)
+
+        self.control_server = BaseHTTPServer.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
         
         self.accumulator = 0x00
         self.x_index = 0x00
@@ -353,6 +528,8 @@ class CPU:
         
         self.setup_ops()
         self.reset()
+        self.running = True
+        self.quit = False
     
     def setup_ops(self):
         self.ops = [None] * 0x100
@@ -515,17 +692,37 @@ class CPU:
         global bus
         bus = socket.socket()
         bus.connect(("127.0.0.1", bus_port))
-        while True:
-            self.cycles += 2 # all instructions take this as a minimum
-            op = self.read_pc_byte()
-            func = self.ops[op]
-            if func is None:
-                print "UNKNOWN OP"
-                print hex(self.program_counter - 1)
-                print hex(op)
-                break
-            else:
-                self.ops[op]()
+
+        while not self.quit:
+
+            timeout = 0
+            if not self.running:
+                timeout = 1
+            # Currently this handler blocks from the moment
+            # a connection is accepted until the response
+            # is sent. TODO: use an async HTTP server that
+            # handles input data asynchronously.
+            sockets = [self.control_server]
+            rs, _, _ = select.select(sockets, [], [], timeout)
+            for s in rs:
+                if s is self.control_server:
+                    self.control_server._handle_request_noblock()
+                else:
+                    pass
+
+            count = 1000
+            while count > 0 and self.running:
+                self.cycles += 2 # all instructions take this as a minimum
+                op = self.read_pc_byte()
+                func = self.ops[op]
+                if func is None:
+                    print "UNKNOWN OP"
+                    print hex(self.program_counter - 1)
+                    print hex(op)
+                    break
+                else:
+                    self.ops[op]()
+                count -= 1
     
     def test_run(self, start, end):
         self.program_counter = start
