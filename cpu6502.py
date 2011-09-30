@@ -505,7 +505,7 @@ class CPU:
     STACK_PAGE = 0x100
     RESET_VECTOR = 0xFFFC
     
-    def __init__(self, memory):
+    def __init__(self, options, memory):
         self.memory = memory
 
         self.control_server = BaseHTTPServer.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
@@ -528,6 +528,8 @@ class CPU:
         
         self.setup_ops()
         self.reset()
+        if options.pc is not None:
+            self.program_counter = options.pc
         self.running = True
         self.quit = False
     
@@ -1176,6 +1178,7 @@ def usage():
     print >>sys.stderr, "Usage: cpu6502.py [options]"
     print >>sys.stderr
     print >>sys.stderr, "    -b, --bus      Bus port number"
+    print >>sys.stderr, "    -p, --pc       Initial PC value"
     print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
     print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
     sys.exit(1)
@@ -1187,6 +1190,7 @@ def get_options():
             self.rom = "A2ROM.BIN"
             self.ram = None
             self.bus = None
+            self.pc = None
 
     options = Options()
     a = 1
@@ -1195,6 +1199,9 @@ def get_options():
             if sys.argv[a] in ("-b", "--bus"):
                 a += 1
                 options.bus = int(sys.argv[a])
+            elif sys.argv[a] in ("-p", "--pc"):
+                a += 1
+                options.pc = int(sys.argv[a])
             elif sys.argv[a] in ("-R", "--rom"):
                 a += 1
                 options.rom = sys.argv[a]
@@ -1219,5 +1226,5 @@ if __name__ == "__main__":
 
     mem = Memory(options)
     
-    cpu = CPU(mem)
+    cpu = CPU(options, mem)
     cpu.run(options.bus)

@@ -377,6 +377,10 @@ class Apple2:
             args.extend([
                 "--ram", options.ram,
             ])
+        if options.pc is not None:
+            args.extend([
+                "--pc", str(options.pc),
+            ])
         self.core = subprocess.Popen(args)
 
         rs, _, _ = select.select([listener], [], [], 2)
@@ -433,6 +437,7 @@ def usage():
     print >>sys.stderr, "    -c, --cassette Cassette wav file to load"
     print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
     print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
+    print >>sys.stderr, "    -p, --pc       Initial PC value"
     print >>sys.stderr, "    -q, --quiet    Quiet mode, no sounds (default sounds)"
     sys.exit(1)
 
@@ -443,6 +448,7 @@ def get_options():
             self.cassette = None
             self.rom = "A2ROM.BIN"
             self.ram = None
+            self.pc = None
             self.quiet = False
 
     options = Options()
@@ -458,6 +464,9 @@ def get_options():
             elif sys.argv[a] in ("-r", "--ram"):
                 a += 1
                 options.ram = sys.argv[a]
+            elif sys.argv[a] in ("-p", "--pc"):
+                a += 1
+                options.pc = int(sys.argv[a])
             elif sys.argv[a] in ("-q", "--quiet"):
                 options.quiet = True
             else:
