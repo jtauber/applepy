@@ -109,6 +109,10 @@ class Display:
         self.flash_time = time.time()
         self.flash_on = False
         self.flash_chars = [[0] * 0x400] * 2
+
+        self.page = 1
+        self.text = True
+        self.colour = False
         
         self.chargen = []
         for c in self.characters:
