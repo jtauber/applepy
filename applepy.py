@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # ApplePy - an Apple ][ emulator in Python
 # James Tauber / http://jtauber.com/
 # originally written 2001, updated 2011
