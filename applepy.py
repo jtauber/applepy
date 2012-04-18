@@ -5,10 +5,13 @@
 
 import numpy
 import pygame
+import select
+import socket
 import struct
 import subprocess
 import sys
 import time
+import wave
 
 
 class Display:
@@ -106,6 +109,10 @@ class Display:
         self.flash_time = time.time()
         self.flash_on = False
         self.flash_chars = [[0] * 0x400] * 2
+
+        self.page = 1
+        self.text = True
+        self.colour = False
         
         self.chargen = []
         for c in self.characters:
@@ -288,12 +295,33 @@ class Speaker:
             self.play()
 
 
+class Cassette:
+
+    def __init__(self, fn):
+        wav = wave.open(fn, "r")
+        self.raw = wav.readframes(wav.getnframes())
+        self.start_cycle = 0
+        self.start_offset = 0
+
+        for i, b in enumerate(self.raw):
+            if ord(b) > 0xA0:
+                self.start_offset = i
+                break
+
+    def read_byte(self, cycle):
+        if self.start_cycle == 0:
+            self.start_cycle = cycle
+        offset = self.start_offset + (cycle - self.start_cycle) * 22000 / 1000000
+        return ord(self.raw[offset]) if offset < len(self.raw) else 0x80
+
+
 class SoftSwitches:
     
-    def __init__(self, display, speaker):
+    def __init__(self, display, speaker, cassette):
         self.kbd = 0x00
         self.display = display
         self.speaker = speaker
+        self.cassette = cassette
     
     def read_byte(self, cycle, address):
         assert 0xC000 <= address <= 0xCFFF
@@ -320,6 +348,9 @@ class SoftSwitches:
             self.display.lores()
         elif address == 0xC057:
             self.display.hires()
+        elif address == 0xC060:
+            if self.cassette:
+                return self.cassette.read_byte(cycle)
         else:
             pass # print "%04X" % address
         return 0x00
@@ -327,25 +358,36 @@ class SoftSwitches:
 
 class Apple2:
 
-    def __init__(self, options, display, speaker):
+    def __init__(self, options, display, speaker, cassette):
         self.display = display
         self.speaker = speaker
-        self.softswitches = SoftSwitches(display, speaker)
+        self.softswitches = SoftSwitches(display, speaker, cassette)
+
+        listener = socket.socket()
+        listener.bind(("127.0.0.1", 0))
+        listener.listen(0)
 
         args = [
             sys.executable,
             "cpu6502.py",
+            "--bus", str(listener.getsockname()[1]),
             "--rom", options.rom,
         ]
         if options.ram:
             args.extend([
                 "--ram", options.ram,
             ])
-        self.core = subprocess.Popen(
-            args=args,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )
+        if options.pc is not None:
+            args.extend([
+                "--pc", str(options.pc),
+            ])
+        self.core = subprocess.Popen(args)
+
+        rs, _, _ = select.select([listener], [], [], 2)
+        if not rs:
+            print >>sys.stderr, "CPU module did not start"
+            sys.exit(1)
+        self.cpu, _ = listener.accept()
 
     def run(self):
         update_cycle = 0
@@ -354,11 +396,12 @@ class Apple2:
         
         quit = False
         while not quit:
-            op = self.core.stdout.read(8)
+            op = self.cpu.recv(8)
+            if len(op) == 0:
+                break
             cycle, rw, addr, val = struct.unpack("<IBHB", op)
             if rw == 0:
-                self.core.stdin.write(chr(self.softswitches.read_byte(cycle, addr)))
-                self.core.stdin.flush()
+                self.cpu.send(chr(self.softswitches.read_byte(cycle, addr)))
             elif rw == 1:
                 self.display.update(addr, val)
             else:
@@ -397,8 +440,10 @@ def usage():
     print >>sys.stderr
     print >>sys.stderr, "Usage: applepy.py [options]"
     print >>sys.stderr
+    print >>sys.stderr, "    -c, --cassette Cassette wav file to load"
     print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
     print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
+    print >>sys.stderr, "    -p, --pc       Initial PC value"
     print >>sys.stderr, "    -q, --quiet    Quiet mode, no sounds (default sounds)"
     sys.exit(1)
 
@@ -406,20 +451,28 @@ def usage():
 def get_options():
     class Options:
         def __init__(self):
+            self.cassette = None
             self.rom = "A2ROM.BIN"
             self.ram = None
+            self.pc = None
             self.quiet = False
 
     options = Options()
     a = 1
     while a < len(sys.argv):
         if sys.argv[a].startswith("-"):
-            if sys.argv[a] in ("-R", "--rom"):
+            if sys.argv[a] in ("-c", "--cassette"):
+                a += 1
+                options.cassette = sys.argv[a]
+            elif sys.argv[a] in ("-R", "--rom"):
                 a += 1
                 options.rom = sys.argv[a]
             elif sys.argv[a] in ("-r", "--ram"):
                 a += 1
                 options.ram = sys.argv[a]
+            elif sys.argv[a] in ("-p", "--pc"):
+                a += 1
+                options.pc = int(sys.argv[a])
             elif sys.argv[a] in ("-q", "--quiet"):
                 options.quiet = True
             else:
@@ -435,6 +488,7 @@ if __name__ == "__main__":
     options = get_options()
     display = Display()
     speaker = None if options.quiet else Speaker()
+    cassette = Cassette(options.cassette) if options.cassette else None
 
-    apple = Apple2(options, display, speaker)
+    apple = Apple2(options, display, speaker, cassette)
     apple.run()
