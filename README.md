@@ -34,3 +34,9 @@ and HIRES graphics are all supported.
 ApplePy currently requires Pygame (although there is a minimal applepy_curses.py
 that uses curses to display text mode only) and numpy (just for an array for
 speaker sounds)
+
+
+License
+-------
+
+This code is made available under an MIT License. See LICENSE.
