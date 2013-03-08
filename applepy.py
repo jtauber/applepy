@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # ApplePy - an Apple ][ emulator in Python
 # James Tauber / http://jtauber.com/
 # originally written 2001, updated 2011
@@ -232,20 +234,24 @@ class Display:
                             if xx % 2:
                                 pixels[x][y] = (0, 0, 0)
                                 # orange
+                                pixels[x][y] = (255, 192, 0) if c else (0, 0, 0)  # @@@
                                 pixels[x + 1][y] = (255, 192, 0) if c else (0, 0, 0)
                             else:
                                 # blue
                                 pixels[x][y] = (0, 192, 255) if c else (0, 0, 0)
                                 pixels[x + 1][y] = (0, 0, 0)
+                                pixels[x + 1][y] = (0, 192, 255) if c else (0, 0, 0)  # @@@
                         else:
                             if xx % 2:
                                 pixels[x][y] = (0, 0, 0)
                                 # green
+                                pixels[x][y] = (0, 255, 0) if c else (0, 0, 0)  # @@@
                                 pixels[x + 1][y] = (0, 255, 0) if c else (0, 0, 0)
                             else:
                                 # violet
                                 pixels[x][y] = (255, 0, 255) if c else (0, 0, 0)
                                 pixels[x + 1][y] = (0, 0, 0)
+                                pixels[x + 1][y] = (255, 0, 255) if c else (0, 0, 0)  # @@@
                                 
                         pixels[x][y + 1] = (0, 0, 0)
                         pixels[x + 1][y + 1] = (0, 0, 0)
@@ -267,15 +273,15 @@ class Speaker:
     CHECK_INTERVAL = 1000
     
     def __init__(self):
-        pygame.mixer.pre_init(44100, -16, 1)
+        pygame.mixer.pre_init(11025, -16, 1)
         pygame.init()
         self.reset()
     
     def toggle(self, cycle):
         if self.last_toggle is not None:
             l = (cycle - self.last_toggle) / Speaker.CPU_CYCLES_PER_SAMPLE
-            self.buffer.extend([0, 0.8] if self.polarity else [0, -0.8])
-            self.buffer.extend((l - 2) * [0.5] if self.polarity else [-0.5])
+            self.buffer.extend([0, 26000] if self.polarity else [0, -2600])
+            self.buffer.extend((l - 2) * [16384] if self.polarity else [-16384])
             self.polarity = not self.polarity
         self.last_toggle = cycle
     
@@ -285,7 +291,7 @@ class Speaker:
         self.polarity = False
     
     def play(self):
-        sample_array = numpy.array(self.buffer)
+        sample_array = numpy.int16(self.buffer)
         sound = pygame.sndarray.make_sound(sample_array)
         sound.play()
         self.reset()
@@ -532,7 +538,8 @@ class Apple2:
                     if key:
                         if key == 0x7F:
                             key = 0x08
-                        self.io.kbd = 0x80 + key
+
+                        self.io.kbd = 0x80 + (key & 0x7F)
             
             update_cycle += 1
             if update_cycle >= 1024:

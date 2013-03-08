@@ -32,4 +32,17 @@ The only I/O supported is the keyboard and screen but 40-column text, LORES
 and HIRES graphics are all supported.
 
 ApplePy currently requires Pygame (although there is a minimal applepy_curses.py
-that uses curses to display text mode only).
+that uses curses to display text mode only) and numpy (just for an array for
+speaker sounds)
+
+Here's how I set up the dependencies (on Mac OS X 10.8):
+
+    pip install numpy
+    brew install sdl sdl_image sdl_mixer sdl_ttf portmidi hg
+    pip install hg+http://bitbucket.org/pygame/pygame
+
+
+License
+-------
+
+This code is made available under an MIT License. See LICENSE.
