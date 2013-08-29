@@ -16,10 +16,15 @@ class ROMBase(object):
     def load_file(self, address, filename):
         with open(filename, "rb") as f:
             for offset, datum in enumerate(f.read()):
-                self._mem[address - self.start + offset] = ord(datum)
+                index = address - self.start + offset
+                try:
+                    self._mem[index] = ord(datum)
+                except IndexError:
+                    raise IndexError("ROM file %s bigger than: %s" % (filename, hex(index)))
+
 
     def read_byte(self, address):
-        assert self.start <= address <= self.end
+        assert self.start <= address <= self.end, "Read %s from %s is not in range %s-%s" % (hex(address), self.__class__.__name__, hex(self.start), hex(self.end))
         return self._mem[address - self.start]
 
 
