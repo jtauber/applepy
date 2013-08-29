@@ -1,5 +1,5 @@
 import unittest
-from cpu6502 import Memory, CPU
+from cpu6502 import Memory, CPU6502
 
 
 class TestMemory(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestLoadStoreOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
         self.memory.load(0x1000, [0x00, 0x01, 0x7F, 0x80, 0xFF])
     
     def test_LDA(self):
@@ -115,7 +115,7 @@ class TestRegisterTransferOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_TAX(self):
         self.cpu.accumulator = 0x00
@@ -190,7 +190,7 @@ class TestStackOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_TSX(self):
         s = self.cpu.stack_pointer
@@ -238,7 +238,7 @@ class TestLogicalOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_AND(self):
         self.memory.write_byte(None, 0x1000, 0x37)
@@ -326,7 +326,7 @@ class TestArithmeticOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_ADC_without_BCD(self):
         
@@ -545,7 +545,7 @@ class TestIncrementDecrementOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_INC(self):
         self.memory.write_byte(None, 0x1000, 0x00)
@@ -654,7 +654,7 @@ class TestShiftOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_ASL(self):
         self.cpu.accumulator = 0x01
@@ -761,7 +761,7 @@ class TestJumpCallOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_JMP(self):
         self.cpu.JMP(0x1000)
@@ -793,7 +793,7 @@ class TestBranchOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_BCC(self):
         self.cpu.program_counter = 0x1000
@@ -880,7 +880,7 @@ class TestStatusFlagOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_CLC(self):
         self.cpu.carry_flag = 1
@@ -922,7 +922,7 @@ class TestSystemFunctionOperations(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_BRK(self):
         self.cpu.program_counter = 0x1000
@@ -952,7 +952,7 @@ class Test6502Bugs(unittest.TestCase):
     
     def setUp(self):
         self.memory = Memory(use_bus=False)
-        self.cpu = CPU(self.memory)
+        self.cpu = CPU6502(self.memory)
     
     def test_zero_page_x(self):
         self.cpu.x_index = 0x01
