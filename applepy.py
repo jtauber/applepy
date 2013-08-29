@@ -15,6 +15,8 @@ import sys
 import time
 import wave
 
+from apple2.apple2config import Apple2Config
+
 
 class Display:
     
@@ -364,19 +366,23 @@ class SoftSwitches:
 
 class Apple2:
 
-    def __init__(self, options, display, speaker, cassette):
+    def __init__(self, cfg, options, display, speaker, cassette):
+        self.cfg = cfg
         self.display = display
         self.speaker = speaker
         self.softswitches = SoftSwitches(display, speaker, cassette)
 
         listener = socket.socket()
-        listener.bind(("127.0.0.1", 0))
+        listener.bind((self.cfg.LOCAL_HOST_IP, 0))
         listener.listen(0)
+        bus_port = listener.getsockname()[1]
+
+        print "bus I/O listen on %s:%s" % (self.cfg.LOCAL_HOST_IP, bus_port)
 
         args = [
             sys.executable,
             "cpu6502.py",
-            "--bus", str(listener.getsockname()[1]),
+            "--bus", str(bus_port),
             "--rom", options.rom,
         ]
         if options.ram:
@@ -391,11 +397,12 @@ class Apple2:
 
         rs, _, _ = select.select([listener], [], [], 2)
         if not rs:
-            print >>sys.stderr, "CPU module did not start"
+            print >> sys.stderr, "CPU module did not start '%s'" % " ".join(args)
             sys.exit(1)
         self.cpu, _ = listener.accept()
 
     def run(self):
+        sys.stdout.flush()
         update_cycle = 0
         quit = False
         while not quit:
@@ -485,10 +492,12 @@ def get_options():
 
 
 if __name__ == "__main__":
+    cfg = Apple2Config()
+
     options = get_options()
     display = Display()
     speaker = None if options.quiet else Speaker()
     cassette = Cassette(options.cassette) if options.cassette else None
 
-    apple = Apple2(options, display, speaker, cassette)
+    apple = Apple2(cfg, options, display, speaker, cassette)
     apple.run()
