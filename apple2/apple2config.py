@@ -1,3 +1,4 @@
+
 from generic.generic_config import BaseConfig
 
 
@@ -17,7 +18,13 @@ class Apple2Config(BaseConfig):
 
     HTTPSERVER_PORT = 6502
 
+    CPU_MODULE = "apple2.cpu6502"
+
+    KEY_LEFT = 0x08
+    KEY_RIGHT = 0x15
+
 
 if __name__ == "__main__":
     cfg = Apple2Config()
     cfg.print_debug_info()
+    print "CPU script:", cfg.get_cpu_script()
