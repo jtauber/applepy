@@ -2,6 +2,7 @@ from generic.generic_config import BaseConfig
 
 
 class Apple2Config(BaseConfig):
+    # Memory
     ROM_START = 0xD000
     ROM_SIZE = 0x3000
     ROM_END = ROM_START + ROM_SIZE # 0x10000
@@ -9,6 +10,12 @@ class Apple2Config(BaseConfig):
     RAM_START = 0x0000
     RAM_SIZE = 0xC000
     RAM_END = RAM_START + RAM_SIZE # 0xc000
+
+    # CPU
+    STACK_PAGE = 0x100
+    RESET_VECTOR = 0xFFFC
+
+    HTTPSERVER_PORT = 6502
 
 
 if __name__ == "__main__":
