@@ -14,6 +14,7 @@ import subprocess
 import sys
 import time
 import wave
+import os
 
 from apple2.apple2config import Apple2Config
 
@@ -381,7 +382,7 @@ class Apple2:
 
         args = [
             sys.executable,
-            "cpu6502.py",
+            os.path.join("apple2", "cpu6502.py"),
             "--bus", str(bus_port),
             "--rom", options.rom,
         ]
