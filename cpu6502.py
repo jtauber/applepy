@@ -714,7 +714,7 @@ class CPU:
 
             count = 1000
             while count > 0 and self.running:
-                self.cycles += 2 # all instructions take this as a minimum
+                self.cycles += 2  # all instructions take this as a minimum
                 op = self.read_pc_byte()
                 func = self.ops[op]
                 if func is None:
@@ -729,7 +729,7 @@ class CPU:
     def test_run(self, start, end):
         self.program_counter = start
         while True:
-            self.cycles += 2 # all instructions take this as a minimum
+            self.cycles += 2  # all instructions take this as a minimum
             if self.program_counter == end:
                 break
             op = self.read_pc_byte()
@@ -948,7 +948,7 @@ class CPU:
         else:
             self.cycles += 2
             self.carry_flag = self.read_byte(operand_address) % 2
-            self.write_byte(operand_address,  self.update_nz(self.read_byte(operand_address) >> 1))
+            self.write_byte(operand_address, self.update_nz(self.read_byte(operand_address) >> 1))
 
     # JUMPS / RETURNS
 
@@ -1128,8 +1128,8 @@ class CPU:
 
     def BIT(self, operand_address):
         value = self.read_byte(operand_address)
-        self.sign_flag = ((value >> 7) % 2) # bit 7
-        self.overflow_flag = ((value >> 6) % 2) # bit 6
+        self.sign_flag = ((value >> 7) % 2)  # bit 7
+        self.overflow_flag = ((value >> 6) % 2)  # bit 6
         self.zero_flag = [0, 1][((self.accumulator & value) == 0)]
 
     # COMPARISON
@@ -1165,7 +1165,6 @@ class CPU:
         self.cycles += 4
         self.status_from_byte(self.pull_byte())
         self.program_counter = self.pull_word()
-
 
     # @@@ IRQ
     # @@@ NMI

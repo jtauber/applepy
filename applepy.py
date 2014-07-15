@@ -86,22 +86,22 @@ class Display:
     ]
 
     lores_colours = [
-        (0, 0, 0), # black
-        (208, 0, 48), # magenta / dark red
-        (0, 0, 128), # dark blue
-        (255, 0, 255), # purple / violet
-        (0, 128, 0), # dark green
-        (128, 128, 128), # gray 1
-        (0, 0, 255), # medium blue / blue
-        (96, 160, 255), # light blue
-        (128, 80, 0), # brown / dark orange
-        (255, 128 ,0), # orange
-        (192, 192, 192), # gray 2
-        (255, 144, 128), # pink / light red
-        (0, 255, 0), # light green / green
-        (255, 255, 0), # yellow / light orange
-        (64, 255, 144), # aquamarine / light green
-        (255, 255, 255), # white
+        (0, 0, 0),  # black
+        (208, 0, 48),  # magenta / dark red
+        (0, 0, 128),  # dark blue
+        (255, 0, 255),  # purple / violet
+        (0, 128, 0),  # dark green
+        (128, 128, 128),  # gray 1
+        (0, 0, 255),  # medium blue / blue
+        (96, 160, 255),  # light blue
+        (128, 80, 0),  # brown / dark orange
+        (255, 128, 0),  # orange
+        (192, 192, 192),  # gray 2
+        (255, 144, 128),  # pink / light red
+        (0, 255, 0),  # light green / green
+        (255, 255, 0),  # yellow / light orange
+        (64, 255, 144),  # aquamarine / light green
+        (255, 255, 255),  # white
     ]
 
     def __init__(self):
@@ -175,7 +175,7 @@ class Display:
             base = address - start_text
             self.flash_chars[self.page - 1][base] = value
             hi, lo = divmod(base, 0x80)
-            row_group, column  = divmod(lo, 0x28)
+            row_group, column = divmod(lo, 0x28)
             row = hi + 8 * row_group
 
             if row_group == 3:
@@ -213,7 +213,7 @@ class Display:
                 base = address - start_hires
                 row8, b = divmod(base, 0x400)
                 hi, lo = divmod(b, 0x80)
-                row_group, column  = divmod(lo, 0x28)
+                row_group, column = divmod(lo, 0x28)
                 row = 8 * (hi + 8 * row_group) + row8
 
                 if self.mix and row >= 160:
@@ -358,7 +358,7 @@ class SoftSwitches:
             if self.cassette:
                 return self.cassette.read_byte(cycle)
         else:
-            pass # print "%04X" % address
+            pass  # print "%04X" % address
         return 0x00
 
 

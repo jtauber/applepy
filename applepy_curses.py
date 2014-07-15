@@ -16,7 +16,7 @@ kbd = 0
 def write_screen(win, address, value):
     base = address - 0x400
     hi, lo = divmod(base, 0x80)
-    row_group, column  = divmod(lo, 0x28)
+    row_group, column = divmod(lo, 0x28)
     row = hi + 8 * row_group
 
     # skip if writing to row group 3
@@ -68,7 +68,7 @@ def run(win):
         "--rom", options.rom,
     ]
 
-    p = subprocess.Popen(args)
+    subprocess.Popen(args)
     cpu, _ = listener.accept()
 
     win.clear()

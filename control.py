@@ -1,15 +1,17 @@
 import json
-import readline
 import sys
 import urllib
 
 URL_PREFIX = "http://localhost:6502"
 
+
 def get(url):
     return json.loads(urllib.urlopen(URL_PREFIX + url).read())
 
+
 def post(url, data=None):
     return urllib.urlopen(URL_PREFIX + url, json.dumps(data) if data is not None else "")
+
 
 def value(s):
     if s.startswith("$"):
@@ -17,6 +19,7 @@ def value(s):
     if s.startswith("0x"):
         return int(s[2:], 16)
     return int(s)
+
 
 def format_disassemble(dis):
     r = "%04X-  " % dis["address"]
@@ -32,6 +35,7 @@ def format_disassemble(dis):
             r += "[%04X] = %0*X" % tuple(dis["memory"])
     return r
 
+
 def cmd_disassemble(a):
     """Disassemble"""
     if len(a) > 1:
@@ -42,6 +46,7 @@ def cmd_disassemble(a):
     disasm = get("/disassemble/%d" % addr)
     for d in disasm:
         print format_disassemble(d)
+
 
 def cmd_dump(a):
     """Dump memory"""
@@ -78,6 +83,7 @@ def cmd_dump(a):
         print s
         addr += 16
 
+
 def cmd_help(a):
     """Help commands"""
     if len(a) > 1:
@@ -91,17 +97,20 @@ def cmd_help(a):
         for c in sorted(Commands):
             print " ", c
 
+
 def cmd_peek(a):
     """Peek memory location"""
     addr = value(a[1])
     dump = get("/memory/%d" % addr)
     print "%04X: %02X" % (addr, dump[0])
 
+
 def cmd_poke(a):
     """Poke memory location"""
     addr = value(a[1])
     val = value(a[2])
     post("/memory/%d" % addr, [val])
+
 
 def cmd_status(a):
     """CPU status"""
@@ -123,9 +132,11 @@ def cmd_status(a):
     disasm = get("/disassemble/%d" % status["program_counter"])
     print format_disassemble(disasm[0])
 
+
 def cmd_quit(a):
     """Quit"""
     sys.exit(0)
+
 
 def cmd_reset(a):
     """Reset"""
@@ -141,6 +152,7 @@ Commands = {
     "quit": cmd_quit,
     "reset": cmd_reset,
 }
+
 
 def main():
     print "ApplePy control console"

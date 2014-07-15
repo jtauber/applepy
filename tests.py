@@ -355,7 +355,7 @@ class TestArithmeticOperations(unittest.TestCase):
         self.cpu.accumulator = 0x7F
         self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.ADC(0x1000)
-        self.assertEqual(self.cpu.accumulator, 0x80) # @@@
+        self.assertEqual(self.cpu.accumulator, 0x80)  # @@@
         self.assertEqual(self.cpu.carry_flag, 0)
         self.assertEqual(self.cpu.overflow_flag, 1)
 
@@ -364,7 +364,7 @@ class TestArithmeticOperations(unittest.TestCase):
         self.cpu.accumulator = 0x80
         self.memory.write_byte(None, 0x1000, 0xFF)
         self.cpu.ADC(0x1000)
-        self.assertEqual(self.cpu.accumulator, 0x7F) # @@@
+        self.assertEqual(self.cpu.accumulator, 0x7F)  # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.assertEqual(self.cpu.overflow_flag, 1)
 
@@ -390,7 +390,7 @@ class TestArithmeticOperations(unittest.TestCase):
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0xFF)
         self.assertEqual(self.cpu.carry_flag, 0)
-        self.assertEqual(self.cpu.overflow_flag, 0) # @@@
+        self.assertEqual(self.cpu.overflow_flag, 0)  # @@@
 
         ## test cases from http://www.6502.org/tutorials/vflag.html
 
@@ -401,7 +401,7 @@ class TestArithmeticOperations(unittest.TestCase):
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0xFF)
         self.assertEqual(self.cpu.carry_flag, 0)
-        self.assertEqual(self.cpu.overflow_flag, 0) # @@@
+        self.assertEqual(self.cpu.overflow_flag, 0)  # @@@
 
         # -128 - 1 = -129  (V = 1)
         self.cpu.carry_flag = 1
@@ -428,7 +428,7 @@ class TestArithmeticOperations(unittest.TestCase):
         self.cpu.SBC(0x1000)
         self.assertEqual(self.cpu.accumulator, 0x7F)
         self.assertEqual(self.cpu.carry_flag, 1)
-        self.assertEqual(self.cpu.overflow_flag, 1) # @@@
+        self.assertEqual(self.cpu.overflow_flag, 1)  # @@@
 
     ## @@@ BCD versions still to do
 
@@ -464,7 +464,7 @@ class TestArithmeticOperations(unittest.TestCase):
         self.cpu.accumulator = 0x0A
         self.memory.write_byte(None, 0x1000, 0xA0)
         self.cpu.CMP(0x1000)
-        self.assertEqual(self.cpu.sign_flag, 0) # @@@
+        self.assertEqual(self.cpu.sign_flag, 0)  # @@@
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 0)
 
@@ -500,7 +500,7 @@ class TestArithmeticOperations(unittest.TestCase):
         self.cpu.x_index = 0x0A
         self.memory.write_byte(None, 0x1000, 0xA0)
         self.cpu.CPX(0x1000)
-        self.assertEqual(self.cpu.sign_flag, 0) # @@@
+        self.assertEqual(self.cpu.sign_flag, 0)  # @@@
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 0)
 
@@ -536,7 +536,7 @@ class TestArithmeticOperations(unittest.TestCase):
         self.cpu.y_index = 0x0A
         self.memory.write_byte(None, 0x1000, 0xA0)
         self.cpu.CPY(0x1000)
-        self.assertEqual(self.cpu.sign_flag, 0) # @@@
+        self.assertEqual(self.cpu.sign_flag, 0)  # @@@
         self.assertEqual(self.cpu.zero_flag, 0)
         self.assertEqual(self.cpu.carry_flag, 0)
 
@@ -709,21 +709,21 @@ class TestShiftOperations(unittest.TestCase):
         self.cpu.ROL()
         self.assertEqual(self.cpu.accumulator, 0x01)
         self.assertEqual(self.cpu.sign_flag, 0)
-        self.assertEqual(self.cpu.zero_flag, 0) # @@@
+        self.assertEqual(self.cpu.zero_flag, 0)  # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 0
         self.memory.write_byte(None, 0x1000, 0x80)
         self.cpu.ROL(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x00)
         self.assertEqual(self.cpu.sign_flag, 0)
-        self.assertEqual(self.cpu.zero_flag, 1) # @@@
+        self.assertEqual(self.cpu.zero_flag, 1)  # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 1
         self.memory.write_byte(None, 0x1000, 0x80)
         self.cpu.ROL(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x01)
         self.assertEqual(self.cpu.sign_flag, 0)
-        self.assertEqual(self.cpu.zero_flag, 0) # @@@
+        self.assertEqual(self.cpu.zero_flag, 0)  # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
 
     def test_ROR(self):
@@ -732,28 +732,28 @@ class TestShiftOperations(unittest.TestCase):
         self.cpu.ROR()
         self.assertEqual(self.cpu.accumulator, 0x00)
         self.assertEqual(self.cpu.sign_flag, 0)
-        self.assertEqual(self.cpu.zero_flag, 1) # @@@
+        self.assertEqual(self.cpu.zero_flag, 1)  # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 1
         self.cpu.accumulator = 0x01
         self.cpu.ROR()
         self.assertEqual(self.cpu.accumulator, 0x80)
-        self.assertEqual(self.cpu.sign_flag, 1) # @@@
-        self.assertEqual(self.cpu.zero_flag, 0) # @@@
+        self.assertEqual(self.cpu.sign_flag, 1)  # @@@
+        self.assertEqual(self.cpu.zero_flag, 0)  # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 0
         self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.ROR(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x00)
         self.assertEqual(self.cpu.sign_flag, 0)
-        self.assertEqual(self.cpu.zero_flag, 1) # @@@
+        self.assertEqual(self.cpu.zero_flag, 1)  # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
         self.cpu.carry_flag = 1
         self.memory.write_byte(None, 0x1000, 0x01)
         self.cpu.ROR(0x1000)
         self.assertEqual(self.memory.read_byte(None, 0x1000), 0x80)
-        self.assertEqual(self.cpu.sign_flag, 1) # @@@
-        self.assertEqual(self.cpu.zero_flag, 0) # @@@
+        self.assertEqual(self.cpu.sign_flag, 1)  # @@@
+        self.assertEqual(self.cpu.zero_flag, 0)  # @@@
         self.assertEqual(self.cpu.carry_flag, 1)
 
 
@@ -786,7 +786,7 @@ class TestJumpCallOperations(unittest.TestCase):
         self.cpu.JSR(0x2000)
         self.assertEqual(self.cpu.program_counter, 0x2000)
         self.cpu.RTS()
-        self.assertEqual(self.cpu.program_counter, 0x1000) # @@@
+        self.assertEqual(self.cpu.program_counter, 0x1000)  # @@@
 
 
 class TestBranchOperations(unittest.TestCase):
