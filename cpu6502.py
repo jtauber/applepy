@@ -22,50 +22,50 @@ def signed(x):
 
 
 class ROM:
-    
+
     def __init__(self, start, size):
         self.start = start
         self.end = start + size - 1
         self._mem = [0x00] * size
-    
+
     def load(self, address, data):
         for offset, datum in enumerate(data):
             self._mem[address - self.start + offset] = datum
-    
+
     def load_file(self, address, filename):
         with open(filename, "rb") as f:
             for offset, datum in enumerate(f.read()):
                 self._mem[address - self.start + offset] = ord(datum)
-    
+
     def read_byte(self, address):
         assert self.start <= address <= self.end
         return self._mem[address - self.start]
 
 
 class RAM(ROM):
-    
+
     def write_byte(self, address, value):
         self._mem[address] = value
 
 
 class Memory:
-    
+
     def __init__(self, options=None, use_bus=True):
         self.use_bus = use_bus
         self.rom = ROM(0xD000, 0x3000)
-        
+
         if options:
             self.rom.load_file(0xD000, options.rom)
-        
+
         self.ram = RAM(0x0000, 0xC000)
-        
+
         if options and options.ram:
             self.ram.load_file(0x0000, options.ram)
-    
+
     def load(self, address, data):
         if address < 0xC000:
             self.ram.load(address, data)
-    
+
     def read_byte(self, cycle, address):
         if address < 0xC000:
             return self.ram.read_byte(address)
@@ -73,16 +73,16 @@ class Memory:
             return self.bus_read(cycle, address)
         else:
             return self.rom.read_byte(address)
-    
+
     def read_word(self, cycle, address):
         return self.read_byte(cycle, address) + (self.read_byte(cycle + 1, address + 1) << 8)
-    
+
     def read_word_bug(self, cycle, address):
         if address % 0x100 == 0xFF:
             return self.read_byte(cycle, address) + (self.read_byte(cycle + 1, address & 0xFF00) << 8)
         else:
             return self.read_word(cycle, address)
-    
+
     def write_byte(self, cycle, address, value):
         if address < 0xC000:
             self.ram.write_byte(address, value)
@@ -116,9 +116,9 @@ class Disassemble:
     def __init__(self, cpu, memory):
         self.cpu = cpu
         self.memory = memory
-        
+
         self.setup_ops()
-    
+
     def setup_ops(self):
         self.ops = [(1, "???")] * 0x100
         self.ops[0x00] = (1, "BRK", )
@@ -272,14 +272,14 @@ class Disassemble:
         self.ops[0xF9] = (3, "SBC", self.absolute_y_mode)
         self.ops[0xFD] = (3, "SBC", self.absolute_x_mode)
         self.ops[0xFE] = (3, "INC", self.absolute_x_mode)
-    
+
     def absolute_mode(self, pc):
         a = self.cpu.read_word(pc + 1)
         return {
             "operand": "$%04X" % a,
             "memory": [a, 2, self.cpu.read_word(a)],
         }
-    
+
     def absolute_x_mode(self, pc):
         a = self.cpu.read_word(pc + 1)
         e = a + self.cpu.x_index
@@ -287,7 +287,7 @@ class Disassemble:
             "operand": "$%04X,X" % a,
             "memory": [e, 1, self.cpu.read_byte(e)],
         }
-    
+
     def absolute_y_mode(self, pc):
         a = self.cpu.read_word(pc + 1)
         e = a + self.cpu.y_index
@@ -295,19 +295,19 @@ class Disassemble:
             "operand": "$%04X,Y" % a,
             "memory": [e, 1, self.cpu.read_byte(e)],
         }
-    
+
     def immediate_mode(self, pc):
         return {
             "operand": "#$%02X" % (self.cpu.read_byte(pc + 1)),
         }
-    
+
     def indirect_mode(self, pc):
         a = self.cpu.read_word(pc + 1)
         return {
             "operand": "($%04X)" % a,
             "memory": [a, 2, self.cpu.read_word(a)],
         }
-    
+
     def indirect_x_mode(self, pc):
         z = self.cpu.read_byte(pc + 1)
         a = self.cpu.read_word((z + self.cpu.x_index) % 0x100)
@@ -315,7 +315,7 @@ class Disassemble:
             "operand": "($%02X,X)" % z,
             "memory": [a, 1, self.cpu.read_byte(a)],
         }
-    
+
     def indirect_y_mode(self, pc):
         z = self.cpu.read_byte(pc + 1)
         a = self.cpu.read_word(z) + self.cpu.y_index
@@ -323,19 +323,19 @@ class Disassemble:
             "operand": "($%02X),Y" % z,
             "memory": [a, 1, self.cpu.read_byte(a)],
         }
-    
+
     def relative_mode(self, pc):
         return {
             "operand": "$%04X" % (pc + signed(self.cpu.read_byte(pc + 1) + 2)),
         }
-    
+
     def zero_page_mode(self, pc):
         a = self.cpu.read_byte(pc + 1)
         return {
             "operand": "$%02X" % a,
             "memory": [a, 1, self.cpu.read_byte(a)],
         }
-    
+
     def zero_page_x_mode(self, pc):
         z = self.cpu.read_byte(pc + 1)
         a = (z + self.cpu.x_index) % 0x100
@@ -343,7 +343,7 @@ class Disassemble:
             "operand": "$%02X,X" % z,
             "memory": [a, 1, self.cpu.read_byte(a)],
         }
-    
+
     def zero_page_y_mode(self, pc):
         z = self.cpu.read_byte(pc + 1)
         a = (z + self.cpu.y_index) % 0x100
@@ -351,7 +351,7 @@ class Disassemble:
             "operand": "$%02X,Y" % z,
             "memory": [a, 1, self.cpu.read_byte(a)],
         }
-    
+
     def disasm(self, pc):
         op = self.cpu.read_byte(pc)
         info = self.ops[op]
@@ -501,19 +501,19 @@ class ControlHandlerFactory:
 
 
 class CPU:
-    
+
     STACK_PAGE = 0x100
     RESET_VECTOR = 0xFFFC
-    
+
     def __init__(self, options, memory):
         self.memory = memory
 
         self.control_server = BaseHTTPServer.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
-        
+
         self.accumulator = 0x00
         self.x_index = 0x00
         self.y_index = 0x00
-        
+
         self.carry_flag = 0
         self.zero_flag = 0
         self.interrupt_disable_flag = 0
@@ -521,18 +521,18 @@ class CPU:
         self.break_flag = 1
         self.overflow_flag = 0
         self.sign_flag = 0
-        
+
         self.stack_pointer = 0xFF
-        
+
         self.cycles = 0
-        
+
         self.setup_ops()
         self.reset()
         if options.pc is not None:
             self.program_counter = options.pc
         self.running = True
         self.quit = False
-    
+
     def setup_ops(self):
         self.ops = [None] * 0x100
         self.ops[0x00] = lambda: self.BRK()
@@ -686,10 +686,10 @@ class CPU:
         self.ops[0xF9] = lambda: self.SBC(self.absolute_y_mode())
         self.ops[0xFD] = lambda: self.SBC(self.absolute_x_mode())
         self.ops[0xFE] = lambda: self.INC(self.absolute_x_mode(rmw=True))
-    
+
     def reset(self):
         self.program_counter = self.read_word(self.RESET_VECTOR)
-    
+
     def run(self, bus_port):
         global bus
         bus = socket.socket()
@@ -725,7 +725,7 @@ class CPU:
                 else:
                     self.ops[op]()
                 count -= 1
-    
+
     def test_run(self, start, end):
         self.program_counter = start
         while True:
@@ -741,34 +741,34 @@ class CPU:
                 break
             else:
                 self.ops[op]()
-    
+
     ####
-    
+
     def get_pc(self, inc=1):
         pc = self.program_counter
         self.program_counter += inc
         return pc
-    
+
     def read_byte(self, address):
         return self.memory.read_byte(self.cycles, address)
-    
+
     def read_word(self, address):
         return self.memory.read_word(self.cycles, address)
-    
+
     def read_word_bug(self, address):
         return self.memory.read_word_bug(self.cycles, address)
-    
+
     def read_pc_byte(self):
         return self.read_byte(self.get_pc())
-    
+
     def read_pc_word(self):
         return self.read_word(self.get_pc(2))
 
     def write_byte(self, address, value):
         self.memory.write_byte(self.cycles, address, value)
-    
+
     ####
-    
+
     def status_from_byte(self, status):
         self.carry_flag = [0, 1][0 != status & 1]
         self.zero_flag = [0, 1][0 != status & 2]
@@ -777,143 +777,143 @@ class CPU:
         self.break_flag = [0, 1][0 != status & 16]
         self.overflow_flag = [0, 1][0 != status & 64]
         self.sign_flag = [0, 1][0 != status & 128]
-    
+
     def status_as_byte(self):
-        return self.carry_flag | self.zero_flag << 1 | self.interrupt_disable_flag << 2 | self.decimal_mode_flag << 3 | self.break_flag << 4 | 1 << 5 | self.overflow_flag << 6 | self.sign_flag << 7 
-    
+        return self.carry_flag | self.zero_flag << 1 | self.interrupt_disable_flag << 2 | self.decimal_mode_flag << 3 | self.break_flag << 4 | 1 << 5 | self.overflow_flag << 6 | self.sign_flag << 7
+
     ####
-    
+
     def push_byte(self, byte):
         self.write_byte(self.STACK_PAGE + self.stack_pointer, byte)
         self.stack_pointer = (self.stack_pointer - 1) % 0x100
-    
+
     def pull_byte(self):
         self.stack_pointer = (self.stack_pointer + 1) % 0x100
         return self.read_byte(self.STACK_PAGE + self.stack_pointer)
-    
+
     def push_word(self, word):
         hi, lo = divmod(word, 0x100)
         self.push_byte(hi)
         self.push_byte(lo)
-    
+
     def pull_word(self):
         s = self.STACK_PAGE + self.stack_pointer + 1
         self.stack_pointer += 2
         return self.read_word(s)
-    
+
     ####
-    
+
     def immediate_mode(self):
         return self.get_pc()
-    
+
     def absolute_mode(self):
         self.cycles += 2
         return self.read_pc_word()
-    
+
     def absolute_x_mode(self, rmw=False):
         if rmw:
             self.cycles += 1
         return self.absolute_mode() + self.x_index
-    
+
     def absolute_y_mode(self, rmw=False):
         if rmw:
             self.cycles += 1
         return self.absolute_mode() + self.y_index
-    
+
     def zero_page_mode(self):
         self.cycles += 1
         return self.read_pc_byte()
-    
+
     def zero_page_x_mode(self):
         self.cycles += 1
         return (self.zero_page_mode() + self.x_index) % 0x100
-    
+
     def zero_page_y_mode(self):
         self.cycles += 1
         return (self.zero_page_mode() + self.y_index) % 0x100
-    
+
     def indirect_mode(self):
         self.cycles += 2
         return self.read_word_bug(self.absolute_mode())
-    
+
     def indirect_x_mode(self):
         self.cycles += 4
         return self.read_word_bug((self.read_pc_byte() + self.x_index) % 0x100)
-    
+
     def indirect_y_mode(self, rmw=False):
         if rmw:
             self.cycles += 4
         else:
             self.cycles += 3
         return self.read_word_bug(self.read_pc_byte()) + self.y_index
-    
+
     def relative_mode(self):
         pc = self.get_pc()
         return pc + 1 + signed(self.read_byte(pc))
-    
+
     ####
-    
+
     def update_nz(self, value):
         value = value % 0x100
         self.zero_flag = [0, 1][(value == 0)]
         self.sign_flag = [0, 1][((value & 0x80) != 0)]
         return value
-    
+
     def update_nzc(self, value):
         self.carry_flag = [0, 1][(value > 0xFF)]
         return self.update_nz(value)
-    
+
     ####
-    
+
     # LOAD / STORE
-    
+
     def LDA(self, operand_address):
         self.accumulator = self.update_nz(self.read_byte(operand_address))
-    
+
     def LDX(self, operand_address):
         self.x_index = self.update_nz(self.read_byte(operand_address))
-    
+
     def LDY(self, operand_address):
         self.y_index = self.update_nz(self.read_byte(operand_address))
-    
+
     def STA(self, operand_address):
         self.write_byte(operand_address, self.accumulator)
-    
+
     def STX(self, operand_address):
         self.write_byte(operand_address, self.x_index)
-    
+
     def STY(self, operand_address):
         self.write_byte(operand_address, self.y_index)
-    
+
     # TRANSFER
-    
+
     def TAX(self):
         self.x_index = self.update_nz(self.accumulator)
-    
+
     def TXA(self):
         self.accumulator = self.update_nz(self.x_index)
-    
+
     def TAY(self):
         self.y_index = self.update_nz(self.accumulator)
-    
+
     def TYA(self):
         self.accumulator = self.update_nz(self.y_index)
-    
+
     def TSX(self):
         self.x_index = self.update_nz(self.stack_pointer)
-    
+
     def TXS(self):
         self.stack_pointer = self.x_index
-    
+
     # SHIFTS / ROTATES
-    
+
     def ASL(self, operand_address=None):
         if operand_address is None:
             self.accumulator = self.update_nzc(self.accumulator << 1)
         else:
             self.cycles += 2
             self.write_byte(operand_address, self.update_nzc(self.read_byte(operand_address) << 1))
-    
+
     def ROL(self, operand_address=None):
         if operand_address is None:
             a = self.accumulator << 1
@@ -926,7 +926,7 @@ class CPU:
             if self.carry_flag:
                 m = m | 0x01
             self.write_byte(operand_address, self.update_nzc(m))
-    
+
     def ROR(self, operand_address=None):
         if operand_address is None:
             if self.carry_flag:
@@ -940,7 +940,7 @@ class CPU:
                 m = m | 0x100
             self.carry_flag = m % 2
             self.write_byte(operand_address, self.update_nz(m >> 1))
-    
+
     def LSR(self, operand_address=None):
         if operand_address is None:
             self.carry_flag = self.accumulator % 2
@@ -949,224 +949,224 @@ class CPU:
             self.cycles += 2
             self.carry_flag = self.read_byte(operand_address) % 2
             self.write_byte(operand_address,  self.update_nz(self.read_byte(operand_address) >> 1))
-    
+
     # JUMPS / RETURNS
-    
+
     def JMP(self, operand_address):
         self.cycles -= 1
         self.program_counter = operand_address
-    
+
     def JSR(self, operand_address):
         self.cycles += 2
         self.push_word(self.program_counter - 1)
         self.program_counter = operand_address
-    
+
     def RTS(self):
         self.cycles += 4
         self.program_counter = self.pull_word() + 1
-    
+
     # BRANCHES
-    
+
     def BCC(self, operand_address):
         if not self.carry_flag:
             self.cycles += 1
             self.program_counter = operand_address
-    
+
     def BCS(self, operand_address):
         if self.carry_flag:
             self.cycles += 1
             self.program_counter = operand_address
-    
+
     def BEQ(self, operand_address):
         if self.zero_flag:
             self.cycles += 1
             self.program_counter = operand_address
-    
+
     def BNE(self, operand_address):
         if not self.zero_flag:
             self.cycles += 1
             self.program_counter = operand_address
-    
+
     def BMI(self, operand_address):
         if self.sign_flag:
             self.cycles += 1
             self.program_counter = operand_address
-    
+
     def BPL(self, operand_address):
         if not self.sign_flag:
             self.cycles += 1
             self.program_counter = operand_address
-    
+
     def BVC(self, operand_address):
         if not self.overflow_flag:
             self.cycles += 1
             self.program_counter = operand_address
-    
+
     def BVS(self, operand_address):
         if self.overflow_flag:
             self.cycles += 1
             self.program_counter = operand_address
-    
+
     # SET / CLEAR FLAGS
-    
+
     def CLC(self):
         self.carry_flag = 0
-    
+
     def CLD(self):
         self.decimal_mode_flag = 0
-    
+
     def CLI(self):
         self.interrupt_disable_flag = 0
-    
+
     def CLV(self):
         self.overflow_flag = 0
-    
+
     def SEC(self):
         self.carry_flag = 1
-    
+
     def SED(self):
         self.decimal_mode_flag = 1
-    
+
     def SEI(self):
         self.interrupt_disable_flag = 1
-    
+
     # INCREMENT / DECREMENT
-    
+
     def DEC(self, operand_address):
         self.cycles += 2
         self.write_byte(operand_address, self.update_nz(self.read_byte(operand_address) - 1))
-    
+
     def DEX(self):
         self.x_index = self.update_nz(self.x_index - 1)
-    
+
     def DEY(self):
         self.y_index = self.update_nz(self.y_index - 1)
-    
+
     def INC(self, operand_address):
         self.cycles += 2
         self.write_byte(operand_address, self.update_nz(self.read_byte(operand_address) + 1))
-    
+
     def INX(self):
         self.x_index = self.update_nz(self.x_index + 1)
-    
+
     def INY(self):
         self.y_index = self.update_nz(self.y_index + 1)
-    
+
     # PUSH / PULL
-    
+
     def PHA(self):
         self.cycles += 1
         self.push_byte(self.accumulator)
-    
+
     def PHP(self):
         self.cycles += 1
         self.push_byte(self.status_as_byte())
-    
+
     def PLA(self):
         self.cycles += 2
         self.accumulator = self.update_nz(self.pull_byte())
-    
+
     def PLP(self):
         self.cycles += 2
         self.status_from_byte(self.pull_byte())
-    
+
     # LOGIC
-    
+
     def AND(self, operand_address):
         self.accumulator = self.update_nz(self.accumulator & self.read_byte(operand_address))
-    
+
     def ORA(self, operand_address):
         self.accumulator = self.update_nz(self.accumulator | self.read_byte(operand_address))
-    
+
     def EOR(self, operand_address):
         self.accumulator = self.update_nz(self.accumulator ^ self.read_byte(operand_address))
-    
+
     # ARITHMETIC
-    
+
     def ADC(self, operand_address):
         # @@@ doesn't handle BCD yet
         assert not self.decimal_mode_flag
-        
+
         a2 = self.accumulator
         a1 = signed(a2)
         m2 = self.read_byte(operand_address)
         m1 = signed(m2)
-        
+
         # twos complement addition
         result1 = a1 + m1 + self.carry_flag
-        
+
         # unsigned addition
         result2 = a2 + m2 + self.carry_flag
-        
+
         self.accumulator = self.update_nzc(result2)
-        
+
         # perhaps this could be calculated from result2 but result1 is more intuitive
         self.overflow_flag = [0, 1][(result1 > 127) | (result1 < -128)]
-    
+
     def SBC(self, operand_address):
         # @@@ doesn't handle BCD yet
         assert not self.decimal_mode_flag
-        
+
         a2 = self.accumulator
         a1 = signed(a2)
         m2 = self.read_byte(operand_address)
         m1 = signed(m2)
-        
+
         # twos complement subtraction
         result1 = a1 - m1 - [1, 0][self.carry_flag]
-        
+
         # unsigned subtraction
         result2 = a2 - m2 - [1, 0][self.carry_flag]
-        
+
         self.accumulator = self.update_nz(result2)
         self.carry_flag = [0, 1][(result2 >= 0)]
-        
+
         # perhaps this could be calculated from result2 but result1 is more intuitive
         self.overflow_flag = [0, 1][(result1 > 127) | (result1 < -128)]
-    
+
     # BIT
-    
+
     def BIT(self, operand_address):
         value = self.read_byte(operand_address)
         self.sign_flag = ((value >> 7) % 2) # bit 7
         self.overflow_flag = ((value >> 6) % 2) # bit 6
         self.zero_flag = [0, 1][((self.accumulator & value) == 0)]
-    
+
     # COMPARISON
-    
+
     def CMP(self, operand_address):
         result = self.accumulator - self.read_byte(operand_address)
         self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
-    
+
     def CPX(self, operand_address):
         result = self.x_index - self.read_byte(operand_address)
         self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
-    
+
     def CPY(self, operand_address):
         result = self.y_index - self.read_byte(operand_address)
         self.carry_flag = [0, 1][(result >= 0)]
         self.update_nz(result)
-    
+
     # SYSTEM
-    
+
     def NOP(self):
         pass
-    
+
     def BRK(self):
         self.cycles += 5
         self.push_word(self.program_counter + 1)
         self.push_byte(self.status_as_byte())
         self.program_counter = self.read_word(0xFFFE)
         self.break_flag = 1
-    
+
     def RTI(self):
         self.cycles += 4
         self.status_from_byte(self.pull_byte())
         self.program_counter = self.pull_word()
-    
-    
+
+
     # @@@ IRQ
     # @@@ NMI
 
@@ -1225,6 +1225,6 @@ if __name__ == "__main__":
         sys.exit(0)
 
     mem = Memory(options)
-    
+
     cpu = CPU(options, mem)
     cpu.run(options.bus)

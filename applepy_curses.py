@@ -18,13 +18,13 @@ def write_screen(win, address, value):
     hi, lo = divmod(base, 0x80)
     row_group, column  = divmod(lo, 0x28)
     row = hi + 8 * row_group
-    
+
     # skip if writing to row group 3
     if row_group == 3:
         return
-    
+
     c = chr(0x20 + ((value + 0x20) % 0x40))
-    
+
     if value < 0x40:
         attr = curses.A_DIM
     elif value < 0x80:
@@ -33,7 +33,7 @@ def write_screen(win, address, value):
         attr = curses.A_UNDERLINE
     else:
         attr = curses.A_DIM
-    
+
     try:
         win.addch(row, column, c, attr)
     except curses.error:
@@ -95,7 +95,7 @@ def run(win):
             pass
         except TypeError:
             pass
-    
+
 
 def usage():
     print >>sys.stderr, "ApplePy - an Apple ][ emulator in Python"

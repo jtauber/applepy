@@ -17,7 +17,7 @@ import wave
 
 
 class Display:
-    
+
     characters = [
         [0b00000, 0b01110, 0b10001, 0b10101, 0b10111, 0b10110, 0b10000, 0b01111],
         [0b00000, 0b00100, 0b01010, 0b10001, 0b10001, 0b11111, 0b10001, 0b10001],
@@ -84,7 +84,7 @@ class Display:
         [0b00000, 0b01000, 0b00100, 0b00010, 0b00001, 0b00010, 0b00100, 0b01000],
         [0b00000, 0b01110, 0b10001, 0b00010, 0b00100, 0b00100, 0b00000, 0b00100]
     ]
-    
+
     lores_colours = [
         (0, 0, 0), # black
         (208, 0, 48), # magenta / dark red
@@ -103,7 +103,7 @@ class Display:
         (64, 255, 144), # aquamarine / light green
         (255, 255, 255), # white
     ]
-    
+
     def __init__(self):
         self.screen = pygame.display.set_mode((560, 384))
         pygame.display.set_caption("ApplePy")
@@ -115,7 +115,7 @@ class Display:
         self.page = 1
         self.text = True
         self.colour = False
-        
+
         self.chargen = []
         for c in self.characters:
             chars = [[pygame.Surface((14, 16)), pygame.Surface((14, 16))],
@@ -134,33 +134,33 @@ class Display:
                             pixels[2 * col + 1][2 * row] = on if bit else off
                     del pixels
             self.chargen.append(chars)
-    
+
     def txtclr(self):
         self.text = False
-    
+
     def txtset(self):
         self.text = True
         self.colour = False
-    
+
     def mixclr(self):
         self.mix = False
-    
+
     def mixset(self):
         self.mix = True
         self.colour = True
-    
+
     def lowscr(self):
         self.page = 1
-    
+
     def hiscr(self):
         self.page = 2
-    
+
     def lores(self):
         self.high_res = False
-    
+
     def hires(self):
         self.high_res = True
-    
+
     def update(self, address, value):
         if self.page == 1:
             start_text = 0x400
@@ -170,33 +170,33 @@ class Display:
             start_hires = 0x4000
         else:
             return
-        
+
         if start_text <= address <= start_text + 0x3FF:
             base = address - start_text
             self.flash_chars[self.page - 1][base] = value
             hi, lo = divmod(base, 0x80)
             row_group, column  = divmod(lo, 0x28)
             row = hi + 8 * row_group
-            
+
             if row_group == 3:
                 return
-            
+
             if self.text or not self.mix or not row < 20:
                 mode, ch = divmod(value, 0x40)
-                
+
                 if mode == 0:
                     inv = True
                 elif mode == 1:
                     inv = self.flash_on
                 else:
                     inv = False
-                
+
                 self.screen.blit(self.chargen[ch][self.colour][inv], (2 * (column * 7), 2 * (row * 8)))
             else:
                 pixels = pygame.PixelArray(self.screen)
                 if not self.high_res:
                     lower, upper = divmod(value, 0x10)
-                    
+
                     for dx in range(14):
                         for dy in range(8):
                             x = column * 14 + dx
@@ -207,7 +207,7 @@ class Display:
                             y = row * 16 + dy
                             pixels[x][y] = self.lores_colours[lower]
                 del pixels
-            
+
         elif start_hires <= address <= start_hires + 0x1FFF:
             if self.high_res:
                 base = address - start_hires
@@ -215,21 +215,21 @@ class Display:
                 hi, lo = divmod(b, 0x80)
                 row_group, column  = divmod(lo, 0x28)
                 row = 8 * (hi + 8 * row_group) + row8
-                
+
                 if self.mix and row >= 160:
                     return
-                
+
                 if row < 192 and column < 40:
-                    
+
                     pixels = pygame.PixelArray(self.screen)
                     msb = value // 0x80
-                    
+
                     for b in range(7):
                         c = value & (1 << b)
                         xx = (column * 7 + b)
                         x = 2 * xx
                         y = 2 * row
-                        
+
                         if msb:
                             if xx % 2:
                                 pixels[x][y] = (0, 0, 0)
@@ -252,10 +252,10 @@ class Display:
                                 pixels[x][y] = (255, 0, 255) if c else (0, 0, 0)
                                 pixels[x + 1][y] = (0, 0, 0)
                                 pixels[x + 1][y] = (255, 0, 255) if c else (0, 0, 0)  # @@@
-                                
+
                         pixels[x][y + 1] = (0, 0, 0)
                         pixels[x + 1][y + 1] = (0, 0, 0)
-                        
+
                     del pixels
 
     def flash(self):
@@ -268,15 +268,15 @@ class Display:
 
 
 class Speaker:
-    
+
     CPU_CYCLES_PER_SAMPLE = 60
     CHECK_INTERVAL = 1000
-    
+
     def __init__(self):
         pygame.mixer.pre_init(11025, -16, 1)
         pygame.init()
         self.reset()
-    
+
     def toggle(self, cycle):
         if self.last_toggle is not None:
             l = (cycle - self.last_toggle) / Speaker.CPU_CYCLES_PER_SAMPLE
@@ -284,18 +284,18 @@ class Speaker:
             self.buffer.extend((l - 2) * [16384] if self.polarity else [-16384])
             self.polarity = not self.polarity
         self.last_toggle = cycle
-    
+
     def reset(self):
         self.last_toggle = None
         self.buffer = []
         self.polarity = False
-    
+
     def play(self):
         sample_array = numpy.int16(self.buffer)
         sound = pygame.sndarray.make_sound(sample_array)
         sound.play()
         self.reset()
-    
+
     def update(self, cycle):
         if self.buffer and (cycle - self.last_toggle) > self.CHECK_INTERVAL:
             self.play()
@@ -322,13 +322,13 @@ class Cassette:
 
 
 class SoftSwitches:
-    
+
     def __init__(self, display, speaker, cassette):
         self.kbd = 0x00
         self.display = display
         self.speaker = speaker
         self.cassette = cassette
-    
+
     def read_byte(self, cycle, address):
         assert 0xC000 <= address <= 0xCFFF
         if address == 0xC000:
@@ -409,11 +409,11 @@ class Apple2:
                 self.display.update(addr, val)
             else:
                 break
-            
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     quit = True
-                
+
                 if event.type == pygame.KEYDOWN:
                     key = ord(event.unicode) if event.unicode else 0
                     if event.key == pygame.K_LEFT:
@@ -424,7 +424,7 @@ class Apple2:
                         if key == 0x7F:
                             key = 0x08
                         self.softswitches.kbd = 0x80 + (key & 0x7F)
-            
+
             update_cycle += 1
             if update_cycle >= 1024:
                 self.display.flash()
@@ -432,7 +432,7 @@ class Apple2:
                 if self.speaker:
                     self.speaker.update(cycle)
                 update_cycle = 0
-    
+
 
 def usage():
     print >>sys.stderr, "ApplePy - an Apple ][ emulator in Python"
