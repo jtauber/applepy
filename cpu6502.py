@@ -3,6 +3,7 @@
 # originally written 2001, updated 2011
 
 
+from __future__ import print_function
 import BaseHTTPServer
 import json
 import re
@@ -16,9 +17,7 @@ bus = None  # socket for bus I/O
 
 
 def signed(x):
-    if x > 0x7F:
-        x = x - 0x100
-    return x
+    return x - 0x100 if x > 0x7F else x
 
 
 class ROM:
@@ -718,9 +717,9 @@ class CPU:
                 op = self.read_pc_byte()
                 func = self.ops[op]
                 if func is None:
-                    print "UNKNOWN OP"
-                    print hex(self.program_counter - 1)
-                    print hex(op)
+                    print("UNKNOWN OP")
+                    print(hex(self.program_counter - 1))
+                    print(hex(op))
                     break
                 else:
                     self.ops[op]()
@@ -735,9 +734,9 @@ class CPU:
             op = self.read_pc_byte()
             func = self.ops[op]
             if func is None:
-                print "UNKNOWN OP"
-                print hex(self.program_counter - 1)
-                print hex(op)
+                print("UNKNOWN OP")
+                print(hex(self.program_counter - 1))
+                print(hex(op))
                 break
             else:
                 self.ops[op]()
