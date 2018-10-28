@@ -1,3 +1,4 @@
+from __future__ import print_function
 # ApplePy - an Apple ][ emulator in Python
 # James Tauber / http://jtauber.com/
 # originally written 2001, updated 2011
@@ -718,9 +719,9 @@ class CPU:
                 op = self.read_pc_byte()
                 func = self.ops[op]
                 if func is None:
-                    print "UNKNOWN OP"
-                    print hex(self.program_counter - 1)
-                    print hex(op)
+                    print("UNKNOWN OP")
+                    print(hex(self.program_counter - 1))
+                    print(hex(op))
                     break
                 else:
                     self.ops[op]()
@@ -735,9 +736,9 @@ class CPU:
             op = self.read_pc_byte()
             func = self.ops[op]
             if func is None:
-                print "UNKNOWN OP"
-                print hex(self.program_counter - 1)
-                print hex(op)
+                print("UNKNOWN OP")
+                print(hex(self.program_counter - 1))
+                print(hex(op))
                 break
             else:
                 self.ops[op]()
@@ -1171,15 +1172,15 @@ class CPU:
 
 
 def usage():
-    print >>sys.stderr, "ApplePy - an Apple ][ emulator in Python"
-    print >>sys.stderr, "James Tauber / http://jtauber.com/"
-    print >>sys.stderr
-    print >>sys.stderr, "Usage: cpu6502.py [options]"
-    print >>sys.stderr
-    print >>sys.stderr, "    -b, --bus      Bus port number"
-    print >>sys.stderr, "    -p, --pc       Initial PC value"
-    print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
-    print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
+    print("ApplePy - an Apple ][ emulator in Python", file=sys.stderr)
+    print("James Tauber / http://jtauber.com/", file=sys.stderr)
+    print(file=sys.stderr)
+    print("Usage: cpu6502.py [options]", file=sys.stderr)
+    print(file=sys.stderr)
+    print("    -b, --bus      Bus port number", file=sys.stderr)
+    print("    -p, --pc       Initial PC value", file=sys.stderr)
+    print("    -R, --rom      ROM file to use (default A2ROM.BIN)", file=sys.stderr)
+    print("    -r, --ram      RAM file to load (default none)", file=sys.stderr)
     sys.exit(1)
 
 
@@ -1219,8 +1220,8 @@ def get_options():
 if __name__ == "__main__":
     options = get_options()
     if options.bus is None:
-        print "ApplePy cpu core"
-        print "Run applepy.py instead"
+        print("ApplePy cpu core")
+        print("Run applepy.py instead")
         sys.exit(0)
 
     mem = Memory(options)

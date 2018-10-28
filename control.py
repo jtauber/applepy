@@ -1,3 +1,4 @@
+from __future__ import print_function
 import json
 import sys
 import urllib
@@ -45,7 +46,7 @@ def cmd_disassemble(a):
         addr = status["program_counter"]
     disasm = get("/disassemble/%d" % addr)
     for d in disasm:
-        print format_disassemble(d)
+        print(format_disassemble(d))
 
 
 def cmd_dump(a):
@@ -80,7 +81,7 @@ def cmd_dump(a):
                     s += "."
             else:
                 s += " "
-        print s
+        print(s)
         addr += 16
 
 
@@ -89,20 +90,20 @@ def cmd_help(a):
     if len(a) > 1:
         f = Commands.get(a[1])
         if f is not None:
-            print f.__doc__
+            print(f.__doc__)
         else:
-            print "Unknown command:", a[1]
+            print("Unknown command:", a[1])
     else:
-        print "Commands:"
+        print("Commands:")
         for c in sorted(Commands):
-            print " ", c
+            print(" ", c)
 
 
 def cmd_peek(a):
     """Peek memory location"""
     addr = value(a[1])
     dump = get("/memory/%d" % addr)
-    print "%04X: %02X" % (addr, dump[0])
+    print("%04X: %02X" % (addr, dump[0]))
 
 
 def cmd_poke(a):
@@ -115,7 +116,7 @@ def cmd_poke(a):
 def cmd_status(a):
     """CPU status"""
     status = get("/status")
-    print "A=%02X X=%02X Y=%02X S=%02X PC=%04X F=%c%c0%c%c%c%c%c" % (
+    print("A=%02X X=%02X Y=%02X S=%02X PC=%04X F=%c%c0%c%c%c%c%c" % (
         status["accumulator"],
         status["x_index"],
         status["y_index"],
@@ -128,9 +129,9 @@ def cmd_status(a):
         "I" if status["interrupt_disable_flag"] else "i",
         "Z" if status["zero_flag"] else "z",
         "C" if status["carry_flag"] else "c",
-    )
+    ))
     disasm = get("/disassemble/%d" % status["program_counter"])
-    print format_disassemble(disasm[0])
+    print(format_disassemble(disasm[0]))
 
 
 def cmd_quit(a):
@@ -155,7 +156,7 @@ Commands = {
 
 
 def main():
-    print "ApplePy control console"
+    print("ApplePy control console")
     while True:
         s = raw_input("6502> ")
         a = s.strip().split()
@@ -163,7 +164,7 @@ def main():
         if f is not None:
             f(a)
         else:
-            print "Unknown command:", s
+            print("Unknown command:", s)
 
 if __name__ == "__main__":
     main()
