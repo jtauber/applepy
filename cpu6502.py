@@ -505,10 +505,10 @@ class CPU:
     STACK_PAGE = 0x100
     RESET_VECTOR = 0xFFFC
 
-    def __init__(self, options, memory):
+    def __init__(self, memory, pc=None):
         self.memory = memory
 
-        self.control_server = BaseHTTPServer.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
+        self.control_server = memory.use_bus and BaseHTTPServer.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
 
         self.accumulator = 0x00
         self.x_index = 0x00
@@ -528,8 +528,8 @@ class CPU:
 
         self.setup_ops()
         self.reset()
-        if options.pc is not None:
-            self.program_counter = options.pc
+        if pc is not None:
+            self.program_counter = pc
         self.running = True
         self.quit = False
 
@@ -704,13 +704,14 @@ class CPU:
             # a connection is accepted until the response
             # is sent. TODO: use an async HTTP server that
             # handles input data asynchronously.
-            sockets = [self.control_server]
-            rs, _, _ = select.select(sockets, [], [], timeout)
-            for s in rs:
-                if s is self.control_server:
-                    self.control_server._handle_request_noblock()
-                else:
-                    pass
+            if self.control_server:
+                sockets = [self.control_server]
+                rs, _, _ = select.select(sockets, [], [], timeout)
+                for s in rs:
+                    if s is self.control_server:
+                        self.control_server._handle_request_noblock()
+                    else:
+                        pass
 
             count = 1000
             while count > 0 and self.running:
@@ -1225,5 +1226,5 @@ if __name__ == "__main__":
 
     mem = Memory(options)
 
-    cpu = CPU(options, mem)
+    cpu = CPU(mem, options.pc)
     cpu.run(options.bus)
