@@ -508,7 +508,7 @@ class CPU:
     def __init__(self, memory, pc=None):
         self.memory = memory
 
-        self.control_server = memory.use_bus and BaseHTTPServer.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
+        self.control_server = memory.use_bus and http.server.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
 
         self.accumulator = 0x00
         self.x_index = 0x00

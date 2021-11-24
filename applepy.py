@@ -404,7 +404,7 @@ class Apple2:
                 break
             cycle, rw, addr, val = struct.unpack("<IBHB", op)
             if rw == 0:
-                self.cpu.send(bytes([self.softswitches.read_byte(cycle, addr)]))
+                self.cpu.send(struct.pack("B", self.softswitches.read_byte(cycle, addr)))
             elif rw == 1:
                 self.display.update(addr, val)
             else:
