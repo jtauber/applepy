@@ -279,7 +279,7 @@ class Speaker:
 
     def toggle(self, cycle):
         if self.last_toggle is not None:
-            l = (cycle - self.last_toggle) / Speaker.CPU_CYCLES_PER_SAMPLE
+            l = (cycle - self.last_toggle) // Speaker.CPU_CYCLES_PER_SAMPLE
             self.buffer.extend([0, 26000] if self.polarity else [0, -2600])
             self.buffer.extend((l - 2) * [16384] if self.polarity else [-16384])
             self.polarity = not self.polarity
