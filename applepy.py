@@ -391,7 +391,7 @@ class Apple2:
 
         rs, _, _ = select.select([listener], [], [], 2)
         if not rs:
-            print >>sys.stderr, "CPU module did not start"
+            print("CPU module did not start", file=sys.stderr)
             sys.exit(1)
         self.cpu, _ = listener.accept()
 
@@ -404,7 +404,7 @@ class Apple2:
                 break
             cycle, rw, addr, val = struct.unpack("<IBHB", op)
             if rw == 0:
-                self.cpu.send(chr(self.softswitches.read_byte(cycle, addr)))
+                self.cpu.send(bytes([self.softswitches.read_byte(cycle, addr)]))
             elif rw == 1:
                 self.display.update(addr, val)
             else:
@@ -415,7 +415,7 @@ class Apple2:
                     quit = True
 
                 if event.type == pygame.KEYDOWN:
-                    key = ord(event.unicode) if event.unicode else 0
+                    key = ord(event.unicode.encode("ascii")) if event.unicode else 0
                     if event.key == pygame.K_LEFT:
                         key = 0x08
                     if event.key == pygame.K_RIGHT:
@@ -435,16 +435,16 @@ class Apple2:
 
 
 def usage():
-    print >>sys.stderr, "ApplePy - an Apple ][ emulator in Python"
-    print >>sys.stderr, "James Tauber / http://jtauber.com/"
-    print >>sys.stderr
-    print >>sys.stderr, "Usage: applepy.py [options]"
-    print >>sys.stderr
-    print >>sys.stderr, "    -c, --cassette Cassette wav file to load"
-    print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
-    print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
-    print >>sys.stderr, "    -p, --pc       Initial PC value"
-    print >>sys.stderr, "    -q, --quiet    Quiet mode, no sounds (default sounds)"
+    print("ApplePy - an Apple ][ emulator in Python", file=sys.stderr)
+    print("James Tauber / http://jtauber.com/", file=sys.stderr)
+    print(file=sys.stderr)
+    print("Usage: applepy.py [options]", file=sys.stderr)
+    print(file=sys.stderr)
+    print("    -c, --cassette Cassette wav file to load", file=sys.stderr)
+    print("    -R, --rom      ROM file to use (default A2ROM.BIN)", file=sys.stderr)
+    print("    -r, --ram      RAM file to load (default none)", file=sys.stderr)
+    print("    -p, --pc       Initial PC value", file=sys.stderr)
+    print("    -q, --quiet    Quiet mode, no sounds (default sounds)", file=sys.stderr)
     sys.exit(1)
 
 

@@ -98,12 +98,12 @@ def run(win):
 
 
 def usage():
-    print >>sys.stderr, "ApplePy - an Apple ][ emulator in Python"
-    print >>sys.stderr, "James Tauber / http://jtauber.com/"
-    print >>sys.stderr
-    print >>sys.stderr, "Usage: applepy_curses.py [options]"
-    print >>sys.stderr
-    print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
+    print("ApplePy - an Apple ][ emulator in Python", file=sys.stderr)
+    print("James Tauber / http://jtauber.com/", file=sys.stderr)
+    print(file=sys.stderr)
+    print("Usage: applepy_curses.py [options]", file=sys.stderr)
+    print(file=sys.stderr)
+    print("    -R, --rom      ROM file to use (default A2ROM.BIN)", file=sys.stderr)
     sys.exit(1)
 
 
