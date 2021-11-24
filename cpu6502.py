@@ -1156,10 +1156,10 @@ class CPU:
 
     def BRK(self):
         self.cycles += 5
+        self.break_flag = 1 # set break_flag before status pushed
         self.push_word(self.program_counter + 1)
         self.push_byte(self.status_as_byte())
         self.program_counter = self.read_word(0xFFFE)
-        self.break_flag = 1
 
     def RTI(self):
         self.cycles += 4
