@@ -3,7 +3,7 @@
 # originally written 2001, updated 2011
 
 
-import BaseHTTPServer
+import http.server
 import json
 import re
 import select
@@ -35,7 +35,7 @@ class ROM:
     def load_file(self, address, filename):
         with open(filename, "rb") as f:
             for offset, datum in enumerate(f.read()):
-                self._mem[address - self.start + offset] = ord(datum)
+                self._mem[address - self.start + offset] = datum
 
     def read_byte(self, address):
         assert self.start <= address <= self.end
@@ -365,7 +365,7 @@ class Disassemble:
         return r, info[0]
 
 
-class ControlHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class ControlHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, request, client_address, server, cpu):
         self.cpu = cpu
@@ -385,13 +385,13 @@ class ControlHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             r"/reset$": self.post_reset,
         }
 
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+        http.server.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def log_request(self, code, size=0):
         pass
 
     def dispatch(self, urls):
-        for r, f in urls.items():
+        for r, f in list(urls.items()):
             m = re.match(r, self.path)
             if m is not None:
                 f(m)
@@ -439,7 +439,7 @@ class ControlHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             end = int(e)
         else:
             end = addr
-        self.response(json.dumps(list(map(self.cpu.read_byte, range(addr, end + 1)))))
+        self.response(json.dumps(list(map(self.cpu.read_byte, list(range(addr, end + 1))))))
 
     def get_status(self, m):
         self.response(json.dumps(dict((x, getattr(self.cpu, x)) for x in (
@@ -505,10 +505,10 @@ class CPU:
     STACK_PAGE = 0x100
     RESET_VECTOR = 0xFFFC
 
-    def __init__(self, options, memory):
+    def __init__(self, memory, pc=None):
         self.memory = memory
 
-        self.control_server = BaseHTTPServer.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
+        self.control_server = memory.use_bus and http.server.HTTPServer(("127.0.0.1", 6502), ControlHandlerFactory(self))
 
         self.accumulator = 0x00
         self.x_index = 0x00
@@ -528,8 +528,8 @@ class CPU:
 
         self.setup_ops()
         self.reset()
-        if options.pc is not None:
-            self.program_counter = options.pc
+        if pc is not None:
+            self.program_counter = pc
         self.running = True
         self.quit = False
 
@@ -704,13 +704,14 @@ class CPU:
             # a connection is accepted until the response
             # is sent. TODO: use an async HTTP server that
             # handles input data asynchronously.
-            sockets = [self.control_server]
-            rs, _, _ = select.select(sockets, [], [], timeout)
-            for s in rs:
-                if s is self.control_server:
-                    self.control_server._handle_request_noblock()
-                else:
-                    pass
+            if self.control_server:
+                sockets = [self.control_server]
+                rs, _, _ = select.select(sockets, [], [], timeout)
+                for s in rs:
+                    if s is self.control_server:
+                        self.control_server._handle_request_noblock()
+                    else:
+                        pass
 
             count = 1000
             while count > 0 and self.running:
@@ -718,9 +719,9 @@ class CPU:
                 op = self.read_pc_byte()
                 func = self.ops[op]
                 if func is None:
-                    print "UNKNOWN OP"
-                    print hex(self.program_counter - 1)
-                    print hex(op)
+                    print("UNKNOWN OP")
+                    print(hex(self.program_counter - 1))
+                    print(hex(op))
                     break
                 else:
                     self.ops[op]()
@@ -735,9 +736,9 @@ class CPU:
             op = self.read_pc_byte()
             func = self.ops[op]
             if func is None:
-                print "UNKNOWN OP"
-                print hex(self.program_counter - 1)
-                print hex(op)
+                print("UNKNOWN OP")
+                print(hex(self.program_counter - 1))
+                print(hex(op))
                 break
             else:
                 self.ops[op]()
@@ -1156,10 +1157,10 @@ class CPU:
 
     def BRK(self):
         self.cycles += 5
+        self.break_flag = 1 # set break_flag before status pushed
         self.push_word(self.program_counter + 1)
         self.push_byte(self.status_as_byte())
         self.program_counter = self.read_word(0xFFFE)
-        self.break_flag = 1
 
     def RTI(self):
         self.cycles += 4
@@ -1171,15 +1172,15 @@ class CPU:
 
 
 def usage():
-    print >>sys.stderr, "ApplePy - an Apple ][ emulator in Python"
-    print >>sys.stderr, "James Tauber / http://jtauber.com/"
-    print >>sys.stderr
-    print >>sys.stderr, "Usage: cpu6502.py [options]"
-    print >>sys.stderr
-    print >>sys.stderr, "    -b, --bus      Bus port number"
-    print >>sys.stderr, "    -p, --pc       Initial PC value"
-    print >>sys.stderr, "    -R, --rom      ROM file to use (default A2ROM.BIN)"
-    print >>sys.stderr, "    -r, --ram      RAM file to load (default none)"
+    print("ApplePy - an Apple ][ emulator in Python", file=sys.stderr)
+    print("James Tauber / http://jtauber.com/", file=sys.stderr)
+    print(file=sys.stderr)
+    print("Usage: cpu6502.py [options]", file=sys.stderr)
+    print(file=sys.stderr)
+    print("    -b, --bus      Bus port number", file=sys.stderr)
+    print("    -p, --pc       Initial PC value", file=sys.stderr)
+    print("    -R, --rom      ROM file to use (default A2ROM.BIN)", file=sys.stderr)
+    print("    -r, --ram      RAM file to load (default none)", file=sys.stderr)
     sys.exit(1)
 
 
@@ -1219,11 +1220,11 @@ def get_options():
 if __name__ == "__main__":
     options = get_options()
     if options.bus is None:
-        print "ApplePy cpu core"
-        print "Run applepy.py instead"
+        print("ApplePy cpu core")
+        print("Run applepy.py instead")
         sys.exit(0)
 
     mem = Memory(options)
 
-    cpu = CPU(options, mem)
+    cpu = CPU(mem, options.pc)
     cpu.run(options.bus)
